@@ -1,0 +1,66 @@
+# ==============================================================================
+# DEPLOYMENT MANIFEST: Stateless Application Layer (RedCoast Core Service)
+# TARGET ENVIRONMENT: UAT / Production (Docker Swarm Cluster)
+# METADATA:           Ticket:   [JIRA-4022] Core Backend Deployment Pipeline
+#                     Date:     2026-07-03
+#                     Author:   Pavel P. <ppanbeing@redcoast.com>
+# ==============================================================================
+# DESCRIPTION:
+#   Deploys the stateless Java application service as a replicated stack in Swarm.
+#   Implements high-availability (HA), multi-middleware connectivity, and secure
+#   runtime secret injection via config trees.
+#
+# ARCHITECTURE & DESIGN NOTES:
+#   - Stateful Dependencies: Discovered dynamically via internal overlay routing.
+#     Connects to core database, distributed caches, and brokers managed in the
+#     shared infrastructure stack.
+#   - Scaling & Availability: Runs 2 load-balanced replicas. Failover policies
+#     handle graceful recovery if shared middleware components flap or restart.
+#   - Scheduling: Constrained strictly to worker nodes labeled with 'type=app'.
+#   - Dual-Network Topology: Attached to 'rc_public' (for reverse-proxy/ingress
+#     routing) and 'rc_private' (for isolated inter-service communication).
+#   - Secrets Architecture: Integrates cluster-level Docker Secrets, mounted directly
+#     into the container filesystem for secure decryption by Spring Boot Config.
+#
+# LOCAL ENVIRONMENT VARIABLES REQ:
+#   - VERSION: Application Docker image tag (e.g., v1.2.0). Defaults to 'uat'.
+#   - APP_PROFILE: Active Spring Boot Profile (uat, prod).
+#   - DB_HOST, DB_PORT, DB_NAME, DB_USERNAME: Core DB endpoint coordinates.
+#   - CACHE_HOST, BROKER_HOST: Distributed middleware access endpoints.
+# ==============================================================================
+version: "3.8"
+services:
+  app:
+    image: ppanbeing/rc:${VERSION:-uat}
+    environment:
+      SPRING_PROFILES_ACTIVE: ${APP_PROFILE}
+      SPRING_DATASOURCE_URL: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${db_password}
+      SPRING_CONFIG_IMPORT: "configtree:/run/secrets/"
+    secrets:
+      - db_password
+    ports:
+      - "8080:8080"
+    networks:
+      - rc_public
+      - rc_private
+    deploy:
+      placement:
+        constraints:
+          - node.labels.type == app
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+networks:
+  rc_public:
+    driver: overlay
+    external: true
+  rc_private:
+    driver: overlay
+    external: true
+secrets:
+  db_password:
+    file: secrets/db_password.txt

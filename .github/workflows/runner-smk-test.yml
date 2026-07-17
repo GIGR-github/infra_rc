@@ -1,0 +1,28 @@
+name: Test local runner 
+
+on:
+  workflow_dispatch: 
+
+jobs:
+  smoke-test:
+    runs-on: self-hosted 
+    steps:
+      - name: 1. Проверяем архитектуру процессора и ОС
+        run: |
+          echo "System info:"
+          uname -a
+          echo "Arch. Type:"
+          uname -m
+
+      - name: 2. Проверяем доступность Ansible
+        run: |
+          echo "=== ВЕРСИЯ ANSIBLE ==="
+          ansible --version
+
+      - name: 3. Проверяем права на управление Docker
+        run: |
+          echo "=== СТАТУС DOCKER ==="
+          docker version
+          echo "Список запущенных контейнеров:"
+          docker ps
+

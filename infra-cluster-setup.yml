@@ -1,0 +1,113 @@
+# ticket: ASI-36.
+# purpose: Automated deployment and initialization of a Docker Swarm cluster.
+# requirements: Ubuntu 22.04+ target nodes with configured SSH key access.
+# description: Installs Docker on all target hosts, initializes the Swarm Manager,
+# joins Worker nodes, and configures custom node placement labels.
+# usage: ansible-playbook -i nodes.ini infra-cluster-setup.yml.
+# date: 2026-06-25.
+# author: Pavel P.
+# ==============================================================================
+- name: "Infrastructure: Install Docker Engine on cluster nodes"
+  hosts: cluster
+  become: true
+  tasks:
+    - name: Update apt package cache and install curl
+      apt:
+        name: curl
+        state: present
+        update_cache: yes
+
+    - name: Install Docker via the official shell script
+      shell: "curl -fsSL https://docker.com | sh"
+      args:
+        creates: /usr/bin/docker
+- name: "Swarm Core: Initialize Cluster Manager"
+  hosts: managers
+  become: true
+  tasks:
+    - name: Activate Docker Swarm mode
+      shell: "docker swarm init --advertise-addr {{ ansible_host }}"
+      register: swarm_init_result
+      failed_when: false
+
+    - name: Generate Swarm join token for workers
+      shell: "docker swarm join-token -q worker"
+      register: worker_token
+- name: "Swarm Core: Join Workers to cluster topology"
+  hosts: workers
+  become: true
+  tasks:
+    - name: Connect to the Swarm Manager node
+      shell: "docker swarm join --token {{ hostvars['node-manager']['worker_token'].stdout }} {{ hostvars['node-manager']['ansible_host'] }}:2377"
+      failed_when: false
+
+- name: "Swarm Orchestration: Apply Node Placement Labels"
+  hosts: managers
+  become: true
+  tasks:
+    - name: "Check existing labels on manager"
+      ansible.builtin.shell: "docker node inspect node-manager --format '{% raw %}{{index .Spec.Labels \"type\"}}{% endraw %}'"
+      register: manager_label_check
+      changed_when: false
+
+    - name: "Add database label to the manager node"
+      ansible.builtin.shell: "docker node update --label-add type=db node-manager"
+      when: manager_label_check.stdout != "db"
+
+    - name: "Check existing labels on worker"
+      ansible.builtin.shell: "docker node inspect node-worker --format '{% raw %}{{index .Spec.Labels \"type\"}}{% endraw %}'"
+      register: worker_label_check
+      changed_when: false
+
+    - name: "Add application label to the worker node"
+      ansible.builtin.shell: "docker node update --label-add type=app node-worker"
+      when: worker_label_check.stdout != "app"
+
+- name: "Infrastructure: Create Docker Network"
+  hosts: managers
+  become: true
+  tasks:
+    - name: "Get list of existing docker networks"
+      ansible.builtin.shell: "docker network ls --format '{{ '{{' }}.Name{{ '}}' }}'"
+      register: networks_list
+      changed_when: false
+
+    - name: Create external public overlay network
+      ansible.builtin.shell: "docker network create --driver overlay rc_public"
+      when: "'rc_public' not in networks_list.stdout_lines"
+
+    - name: Create external private overlay network
+      ansible.builtin.shell: "docker network create --driver overlay --internal rc_private"
+      when: "'rc_private' not in networks_list.stdout_lines"
+- name: "Infrastructure: Deploy infra services"
+  hosts: managers
+  become: true
+  vars:
+    infra_src_dir: "./manifests/"
+    infra_dest_dir: "/home/ubuntu/app/infra"
+  tasks:
+    - name: Ensure infrastructure directory exists
+      ansible.builtin.file:
+        path: "{{ infra_dest_dir }}"
+        state: directory
+        mode: '0755'
+    - name: Sync infrastructure files and folders with node-manager
+      ansible.builtin.copy:
+        src: "{{ infra_src_dir }}"
+        dest: "{{ infra_dest_dir }}/"
+        mode: '0644'
+    - name: Make all copied bash scripts executable
+      ansible.builtin.shell: |
+        find {{ infra_dest_dir }} -type f -name "*.sh" -exec chmod +x {} +
+      changed_when: false
+
+    - name:  Deploy infra stack to Swarm
+      ansible.builtin.shell:
+        cmd: "env $(grep -v '^#' .env.uat | xargs) docker stack deploy -c docker-compose.infra.yml infra"
+      args:
+        chdir: "{{ infra_dest_dir }}"
+
+
+
+
+

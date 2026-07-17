@@ -1,0 +1,65 @@
+# ==============================================================================
+# DEPLOYMENT MANIFEST: Core Shared Infrastructure Stack
+# TARGET ENVIRONMENT: UAT / Production (Docker Swarm Cluster)
+# METADATA:           Ticket:   [JIRA-3980] Enterprise Infrastructure Hardening
+#                     Date:     2026-06-29
+#                     Author:   Pavel P. <ppanbeing@redcoast.com>
+# ==============================================================================
+# DESCRIPTION:
+#   Orchestrates the persistent stateful layer and middleware services (Databases,
+#   Caches, Message Brokers) required by the RedCoast application ecosystem.
+#   Implements centralized data persistence, cross-service network topology,
+#   and stateful workload placement boundaries.
+#
+# ARCHITECTURE & DESIGN NOTES:
+#   - Core Topology: Consolidates third-party stateful services into a unified
+#     stack, enabling strict lifecycle isolation from stateless application nodes.
+#   - Stateful Scheduling: Pinned via placement constraints to dedicated system
+#     nodes labeled 'type=db' or 'type=infra' to ensure high I/O performance.
+#   - Network Security Architecture: Bound exclusively to the internal overlay
+#     network ('rc_private'). No external ingress ports are exposed to the public.
+#   - Provisioning & Security: Integrates cluster-level Docker Secrets and custom
+#     initialization runbooks for automatic database and message-broker bootstrapping.
+#
+# SHARED RESOURCES MANAGED:
+#   - Persistent Storage: MySQL 8.4 Server (Volume: mysql-data)
+#   - [Optional Extensions]: Cache Layers (Redis), Messaging (Kafka), Object Storage
+# ==============================================================================
+version: "3.8"
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      DB_ALLOWED_MASK: ${SQL_NETWORK_MASK}
+    secrets:
+      - db_password
+      - flyway_password
+    volumes:
+      - ./init/db-init.sh:/usr/local/bin/db-init.sh
+      - ./init/init.sql:/tmp/init.sql
+      - mysql-data:/var/lib/mysql
+    entrypoint: /usr/local/bin/db-init.sh
+    networks:
+      - rc_private
+    deploy:
+      placement:
+        constraints:
+          - node.labels.type == db
+volumes:
+  mysql-data:
+networks:
+  rc_private:
+    driver: overlay
+    external: true
+#    ipam:
+#      config:
+#        - subnet: ${DOCKER_NETWORK_MASK}
+secrets:
+  db_password:
+    file: secrets/db_password.txt
+  flyway_password:
+    file: secrets/flyway_password.txt
