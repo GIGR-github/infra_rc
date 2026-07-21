@@ -36,6 +36,7 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD}
       DB_ALLOWED_MASK: ${SQL_NETWORK_MASK}
     secrets:
+      - db_root_password
       - db_password
       - flyway_password
     volumes:
@@ -49,6 +50,11 @@ services:
       placement:
         constraints:
           - node.labels.type == db
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 120s
 volumes:
   mysql-data:
 networks:
@@ -59,6 +65,8 @@ networks:
 #      config:
 #        - subnet: ${DOCKER_NETWORK_MASK}
 secrets:
+  db_root_password:
+    file: secrets/db_root_password.txt
   db_password:
     file: secrets/db_password.txt
   flyway_password:

@@ -101,11 +101,11 @@
         find {{ infra_dest_dir }} -type f -name "*.sh" -exec chmod +x {} +
       changed_when: false
 
-#    - name:  Deploy infra stack to Swarm
-#      ansible.builtin.shell:
-#        cmd: "env $(grep -v '^#' .env.uat | xargs) docker stack deploy -c docker-compose.infra.yml infra"
-#      args:
-#        chdir: "{{ infra_dest_dir }}"
+    - name:  Deploy infra stack to Swarm
+      ansible.builtin.shell:
+        cmd: "env $(grep -v '^#' .env.uat | xargs) docker stack deploy -c docker-compose.infra.yml infra"
+      args:
+        chdir: "{{ infra_dest_dir }}"
 
 
 

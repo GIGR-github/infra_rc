@@ -1,21 +1,22 @@
 name: Run Ansible Playbook
 
-# Скрипт запустится при любом push в ветку main (или master)
-# А также его можно запустить вручную через кнопку в интерфейсе GitHub
 on:
   workflow_dispatch:
 
 jobs:
   ansible-execution:
-    # КРИТИЧЕСКИ ВАЖНО: теги должны соответствовать вашему self-hosted раннеру
     runs-on: [self-hosted, Linux, ARM64]
 
     steps:
-      # 1. Скачиваем файлы репозитория внутрь виртуалки Multipass
       - name: Checkout repository code
         uses: actions/checkout@v4
+      - name: Generating secret files
+        run: |
+          mkdir -p manifests/secrets
+          echo "${{ secrets.DB_PASSWORD }}" > manifests/secrets/db_password.txt
+          echo "${{ secrets.DB_ROOT_PASSWORD }}" > manifests/secrets/db_root_password.txt
+          echo "${{ secrets.FLYWAY_PASSWORD }}" > manifests/secrets/flyway_password.txt
 
-      # 2. Запускаем Ansible
       - name: Run Ansible Playbook
         run: |
           echo "Запуск Ansible плейбука..."
