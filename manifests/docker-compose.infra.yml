@@ -31,9 +31,8 @@ services:
     image: mysql:8.4
     environment:
       MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      FLYWAY_USER: ${FLYWAY_USER}
       DB_ALLOWED_MASK: ${SQL_NETWORK_MASK}
     secrets:
       - db_root_password

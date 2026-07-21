@@ -41,7 +41,7 @@ set -e
 sed -e "s/\${MYSQL_DATABASE}/$MYSQL_DATABASE/g" \
     -e "s/\${FLYWAY_USER}/$FLYWAY_USER/g" \
     -e "s/\${FLYWAY_PASSWORD}/$FLYWAY_PASSWORD/g" \
-    -e "s/\${DB_USERNAME}/$DB_USERNAME/g" \
+    -e "s/\${DB_USERNAME}/$MYSQL_USER/g" \
     -e "s/\${DB_PASSWORD}/$DB_PASSWORD/g" \
     /tmp/init.sql > /docker-entrypoint-initdb.d/init.sql
 exec /usr/local/bin/docker-entrypoint.sh mysqld
