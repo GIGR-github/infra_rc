@@ -28,10 +28,16 @@
 #     (PID 1). This ensures proper Unix signal propagation (e.g., SIGTERM, SIGKILL)
 #     for graceful cluster shutdowns and container lifecycles.
 # ==============================================================================
-
-set -e
+set +e
+if [ ! -s /run/secrets/db_password ] || [ ! -s /run/secrets/db_root_password ] || [ ! -s /run/secrets/flyway_password ]; then
+    echo "Secret files is not exists or empty, container will be restarted" >&2
+    exit 1
+fi
 DB_PASSWORD=$(cat /run/secrets/db_password)
 FLYWAY_PASSWORD=$(cat /run/secrets/flyway_password)
+MYSQL_ROOT_PASSWORD=$(cat /run/secrets/db_root_password)
+export MYSQL_ROOT_PASSWORD
+set -e
 sed -e "s/\${MYSQL_DATABASE}/$MYSQL_DATABASE/g" \
     -e "s/\${FLYWAY_USER}/$FLYWAY_USER/g" \
     -e "s/\${FLYWAY_PASSWORD}/$FLYWAY_PASSWORD/g" \
