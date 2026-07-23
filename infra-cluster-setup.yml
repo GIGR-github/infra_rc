@@ -107,12 +107,12 @@
       ansible.builtin.command:
         cmd: "docker secret create {{ item.name }} -"
         stdin: "{{ item.value }}"
-        loop:
-          - { name: 'db_password', value: '{{ db_password }}' }
-          - { name: 'db_root_password', value: '{{ db_root_password }}' }
-          - { name: 'flyway_password', value: '{{ flyway_password }}' }
-        failed_when: false
-        no_log: true
+      loop:
+        - { name: 'db_password', value: '{{ db_password }}' }
+        - { name: 'db_root_password', value: '{{ db_root_password }}' }
+        - { name: 'flyway_password', value: '{{ flyway_password }}' }
+      failed_when: false
+      no_log: true
     - name: Deploy infra stack to Swarm
       ansible.builtin.shell:
         cmd: "env $(grep -v '^#' .env.uat | xargs) docker stack deploy -c docker-compose.infra.yml infra"
