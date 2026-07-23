@@ -10,14 +10,11 @@ jobs:
     steps:
       - name: Checkout repository code
         uses: actions/checkout@v4
-      - name: Generating secret files
-        run: |
-          mkdir -p manifests/secrets
-          echo "${{ secrets.DB_PASSWORD }}" > manifests/secrets/db_password.txt
-          echo "${{ secrets.DB_ROOT_PASSWORD }}" > manifests/secrets/db_root_password.txt
-          echo "${{ secrets.FLYWAY_PASSWORD }}" > manifests/secrets/flyway_password.txt
-
       - name: Run Ansible Playbook
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+          FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
         run: |
           echo "Запуск Ansible плейбука..."
           ansible-playbook -i nodes.ini infra-cluster-setup.yml   

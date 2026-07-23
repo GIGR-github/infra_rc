@@ -65,8 +65,8 @@ networks:
 #        - subnet: ${DOCKER_NETWORK_MASK}
 secrets:
   db_root_password:
-    file: secrets/db_root_password.txt
+    external: true
   db_password:
-    file: secrets/db_password.txt
+    external: true
   flyway_password:
-    file: secrets/flyway_password.txt
+    external: true

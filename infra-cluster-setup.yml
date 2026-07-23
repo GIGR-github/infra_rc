@@ -85,6 +85,9 @@
   vars:
     infra_src_dir: "./manifests/"
     infra_dest_dir: "/home/ubuntu/app/infra"
+    db_password: "{{ lookup('ansible.builtin.env', 'DB_PASSWORD') }}"
+    db_root_password: "{{ lookup('ansible.builtin.env', 'DB_ROOT_PASSWORD') }}"
+    flyway_password: "{{ lookup('ansible.builtin.env', 'FLYWAY_PASSWORD') }}"
   tasks:
     - name: Ensure infrastructure directory exists
       ansible.builtin.file:
@@ -100,8 +103,17 @@
       ansible.builtin.shell: |
         find {{ infra_dest_dir }} -type f -name "*.sh" -exec chmod +x {} +
       changed_when: false
-
-    - name:  Deploy infra stack to Swarm
+    - name: Create Docker Secrets
+      ansible.builtin.command:
+        cmd: "docker secret create {{ item.name }} -"
+        stdin: "{{ item.value }}"
+        loop:
+          - { name: 'db_password', value: '{{ db_password }}' }
+          - { name: 'db_root_password', value: '{{ db_root_password }}' }
+          - { name: 'flyway_password', value: '{{ flyway_password }}' }
+        failed_when: false
+        no_log: true
+    - name: Deploy infra stack to Swarm
       ansible.builtin.shell:
         cmd: "env $(grep -v '^#' .env.uat | xargs) docker stack deploy -c docker-compose.infra.yml infra"
       args:
