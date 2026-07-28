@@ -1,0 +1,7 @@
+- name: Activate Docker Swarm mode
+  shell: "docker swarm init --advertise-addr {{ ansible_host }}"
+  register: swarm_init_result
+  failed_when: false
+- name: Generate Swarm join token for workers
+  shell: "docker swarm join-token -q worker"
+  register: worker_token

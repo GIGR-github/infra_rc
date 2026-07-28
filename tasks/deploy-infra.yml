@@ -1,0 +1,29 @@
+- name: Ensure infrastructure directory exists
+  ansible.builtin.file:
+    path: "{{ infra_dest_dir }}"
+    state: directory
+    mode: '0755'
+- name: Sync infrastructure files and folders with node-manager
+  ansible.builtin.copy:
+    src: "{{ infra_src_dir }}"
+    dest: "{{ infra_dest_dir }}/"
+    mode: '0644'
+- name: Make all copied bash scripts executable
+  ansible.builtin.shell: |
+    find {{ infra_dest_dir }} -type f -name "*.sh" -exec chmod +x {} +
+  changed_when: false
+- name: Create Docker Secrets
+  ansible.builtin.command:
+    cmd: "docker secret create {{ item.name }} -"
+    stdin: "{{ item.value }}"
+  loop:
+    - { name: 'db_password', value: '{{ db_password }}' }
+    - { name: 'db_root_password', value: '{{ db_root_password }}' }
+    - { name: 'flyway_password', value: '{{ flyway_password }}' }
+  failed_when: false
+  no_log: true
+- name: Deploy infra stack to Swarm
+  ansible.builtin.shell:
+    cmd: "env $(grep -v '^#' .env.uat | xargs) docker stack deploy -c docker-compose.infra.yml infra"
+  args:
+    chdir: "{{ infra_dest_dir }}"

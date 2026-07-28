@@ -1,0 +1,14 @@
+- name: Check existing labels on manager
+  ansible.builtin.shell: "docker node inspect node-manager --format '{% raw %}{{index .Spec.Labels \"type\"}}{% endraw %}'"
+  register: manager_label_check
+  changed_when: false
+- name: Add database label to the manager node
+  ansible.builtin.shell: "docker node update --label-add type=db node-manager"
+  when: manager_label_check.stdout != "db"
+- name: Check existing labels on worker
+  ansible.builtin.shell: "docker node inspect node-worker --format '{% raw %}{{index .Spec.Labels \"type\"}}{% endraw %}'"
+  register: worker_label_check
+  changed_when: false
+- name: Add application label to the worker node
+  ansible.builtin.shell: "docker node update --label-add type=app node-worker"
+  when: worker_label_check.stdout != "app"

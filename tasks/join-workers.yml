@@ -1,0 +1,3 @@
+- name: Connect to the Swarm Manager node
+  shell: "docker swarm join --token {{ hostvars['node-manager']['worker_token'].stdout }} {{ hostvars['node-manager']['ansible_host'] }}:2377"
+  failed_when: false

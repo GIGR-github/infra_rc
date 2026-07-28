@@ -1,0 +1,11 @@
+- name: Get list of existing docker networks
+  ansible.builtin.shell: "docker network ls --format '{{ '{{' }}.Name{{ '}}' }}'"
+  register: networks_list
+  changed_when: false
+- name: Create external public overlay network
+  ansible.builtin.shell: "docker network create --driver overlay rc_public"
+  when: "'rc_public' not in networks_list.stdout_lines"
+
+- name: Create external private overlay network
+  ansible.builtin.shell: "docker network create --driver overlay --internal rc_private"
+  when: "'rc_private' not in networks_list.stdout_lines"
