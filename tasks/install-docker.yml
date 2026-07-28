@@ -4,6 +4,6 @@
     state: present
     update_cache: yes
 - name: Install Docker via the official shell script
-  shell: "curl -fsSL https://docker.com | sh"
+  shell: "curl -fsSL https://get.docker.com | sh"
   args:
     creates: /usr/bin/docker
