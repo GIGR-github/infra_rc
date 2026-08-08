@@ -1,0 +1,68 @@
+name: "Infrastructure CI/CD"
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # 1. Срабатывает при создании или обновлении Pull Request в main
+  staging-plan:
+    name: "Staging: Validate & Plan"
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test Staging Plan
+        run: |
+          echo "=========================================="
+          echo "🟢 ЭТАП: STAGING PLAN"
+          echo "Событие: ${{ github.event_name }}"
+          echo "PR из ветки: ${{ github.head_ref }} в ветку: ${{ github.base_ref }}"
+          echo "Команда: terraform plan -var-file=staging.tfvars"
+          echo "=========================================="
+
+  # 2. Срабатывает при мёрдже PR в ветку main (или прямом push в main)
+  staging-apply:
+    name: "Staging: Apply"
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test Staging Apply
+        run: |
+          echo "=========================================="
+          echo "🚀 ЭТАП: STAGING APPLY"
+          echo "Событие: ${{ github.event_name }}"
+          echo "Ветка: ${{ github.ref_name }}"
+          echo "Команда: terraform apply -var-file=staging.tfvars -auto-approve"
+          echo "=========================================="
+
+  # 3. Срабатывает только при отправке тега (например, v1.0.0)
+  prod-apply:
+    name: "Production: Apply"
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test Production Apply
+        run: |
+          echo "=========================================="
+          echo "🛡️ ЭТАП: PRODUCTION APPLY"
+          echo "Событие: ${{ github.event_name }}"
+          echo "Релизный тег: ${{ github.ref_name }}"
+          echo "Команда: terraform apply -var-file=prod.tfvars -auto-approve"
+          echo "=========================================="

@@ -35,4 +35,6 @@ build/
 .vscode/
 /manifests/secrets
 /manifests/.env.uat
+terraform.tfstate
+*.tfstate.backup
 
