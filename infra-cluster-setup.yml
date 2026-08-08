@@ -9,7 +9,7 @@
 #   Bootstraps the core Docker Swarm cluster topology across heterogeneous nodes.
 #   Configures node placement labels, provisions isolated overlay networks,
 #   injects runtime secrets via standard input streams, and deploys the
-#   underlying database infrastructure stack without local disk state exposure.
+#   underlying database infrastructure stack without local disk state exposure
 # ==============================================================================
 - name: "Infrastructure: Install Docker Engine on cluster nodes"
   hosts: cluster
