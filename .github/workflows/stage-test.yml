@@ -3,66 +3,108 @@ name: "Infrastructure CI/CD"
 on:
   push:
     branches: [ "main" ]
-    tags: [ "v*" ]
+    tags: [ "v*" ]          # Запуск при создании тега (например, v1.0.0)
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch:
+  workflow_dispatch:        # Возможность ручного запуска из интерфейса
 
 permissions:
   contents: read
-  pull-requests: write
+  pull-requests: write      # Чтобы бот мог писать вывод plan в комменты PR
 
 jobs:
-  # 1. Срабатывает при создании или обновлении Pull Request в main
+  # ==========================================
+  # 1. ПРОВЕРКА И ПЛАН ДЛЯ STAGING (Pull Request)
+  # ==========================================
   staging-plan:
     name: "Staging: Validate & Plan"
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    defaults:
+      run:
+        working-directory: ./terraform
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          clean: false
 
-      - name: Test Staging Plan
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      - name: Init
+        run: terraform init
+        env:
+          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+
+      - name: Validate & Format
         run: |
-          echo "=========================================="
-          echo "🟢 ЭТАП: STAGING PLAN"
-          echo "Событие: ${{ github.event_name }}"
-          echo "PR из ветки: ${{ github.head_ref }} в ветку: ${{ github.base_ref }}"
-          echo "Команда: terraform plan -var-file=staging.tfvars"
-          echo "=========================================="
+          terraform fmt -check
+          terraform validate
 
-  # 2. Срабатывает при мёрдже PR в ветку main (или прямом push в main)
+      - name: Terraform Plan (Staging)
+        id: plan
+        run: terraform plan -var-file="staging.tfvars" -no-color
+        env:
+          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+
+  # ==========================================
+  # 2. АВТО-ДЕПЛОЙ НА STAGING (После мёрджа в main)
+  # ==========================================
   staging-apply:
     name: "Staging: Apply"
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    defaults:
+      run:
+        working-directory: ./terraform
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          clean: false
 
-      - name: Test Staging Apply
-        run: |
-          echo "=========================================="
-          echo "🚀 ЭТАП: STAGING APPLY"
-          echo "Событие: ${{ github.event_name }}"
-          echo "Ветка: ${{ github.ref_name }}"
-          echo "Команда: terraform apply -var-file=staging.tfvars -auto-approve"
-          echo "=========================================="
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-  # 3. Срабатывает только при отправке тега (например, v1.0.0)
+      - name: Init
+        run: terraform init
+        env:
+          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+
+      - name: Terraform Apply (Staging)
+        run: terraform apply -var-file="staging.tfvars" -auto-approve
+        env:
+          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+
+  # ==========================================
+  # 3. ДЕПЛОЙ НА PRODUCTION (По релизному тегу v*)
+  # ==========================================
   prod-apply:
     name: "Production: Apply"
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    defaults:
+      run:
+        working-directory: ./terraform
+    environment: production # Подключает правила защиты (Manual Approval)
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          clean: false
 
-      - name: Test Production Apply
-        run: |
-          echo "=========================================="
-          echo "🛡️ ЭТАП: PRODUCTION APPLY"
-          echo "Событие: ${{ github.event_name }}"
-          echo "Релизный тег: ${{ github.ref_name }}"
-          echo "Команда: terraform apply -var-file=prod.tfvars -auto-approve"
-          echo "=========================================="
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Init
+        run: terraform init
+        env:
+          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+
+      - name: Terraform Apply (Prod)
+        run: terraform apply -var-file="prod.tfvars" -auto-approve
+        env:
+          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
