@@ -1,3 +1,7 @@
+[cluster:children]
+managers
+workers
+
 [managers]
 %{ for node in managers ~}
 ${node.name} ansible_host=${node.ipv4[0]}
