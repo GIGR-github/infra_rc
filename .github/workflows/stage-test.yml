@@ -79,13 +79,20 @@ jobs:
         env:
           TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
 
-      - name: Run Ansible Playbook
-        env:
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
-          FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
+      - name: Get IP and Update App Repo Variable
         run: |
-          ansible-playbook -i ./inventory/nodes.ini ../infra-cluster-setup.yml 
+          # 1. Извлекаем IP-адрес из сохраненного состояния Terraform
+          MANAGER_IP=$(terraform output -raw swarm_manager_ip)
+
+          echo "Получен IP менеджер-ноды: $MANAGER_IP"
+
+#      - name: Run Ansible Playbook
+#        env:
+#          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+#          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+#          FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
+#        run: |
+#          ansible-playbook -i ./inventory/nodes.ini ../infra-cluster-setup.yml
 
 
   # ==========================================
