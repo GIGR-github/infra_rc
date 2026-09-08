@@ -1,0 +1,28 @@
+name: Manual Test App Deployment
+
+on:
+  # Этот триггер включает кнопку ручного запуска в интерфейсе GitHub
+  workflow_dispatch:
+
+jobs:
+  deploy-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Исправленный шаг: проверяем, что пайплайн видит IP-адрес
+      - name: Verify Swarm Manager IP
+        run: |
+          echo "=== РУЧНОЙ ТЕСТ ПАЙПЛАЙНА ПРИЛОЖЕНИЯ ==="
+          echo "Забираем последний сохраненный IP-адрес из настроек репозитория..."
+          echo "Текущий IP для деплоя: ${{ vars.SWARM_MANAGER_IP }}"
+
+      # Имитация деплоя с использованием этого IP
+      - name: Simulate Deployment Steps
+        run: |
+          echo "1. Беру файл docker-compose.app.yml из этого репозитория..."
+          echo "2. Симулирую отправку файла на IP: ${{ vars.SWARM_MANAGER_IP }}"
+          echo "3. Симулирую команду: ssh user@${{ vars.SWARM_MANAGER_IP }} 'docker stack deploy -c docker-compose.app.yml my-app'"
+          echo "=== ТЕСТОВЫЙ РЕЛИЗ ЗАВЕРШЕН ==="
