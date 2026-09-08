@@ -9,6 +9,7 @@ on:
   workflow_dispatch:        # Возможность ручного запуска из интерфейса
 
 permissions:
+  actions: write
   contents: read
   pull-requests: write      # Чтобы бот мог писать вывод plan в комменты PR
 
