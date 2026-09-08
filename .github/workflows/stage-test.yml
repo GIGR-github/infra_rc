@@ -83,7 +83,7 @@ jobs:
       - name: Get IP and Update App Repo Variable
         env:
           # Для обновления переменной В ЭТОМ ЖЕ репозитории достаточно встроенного токена!
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PERSONAL_VAR_TOKEN }}
         run: |
           MANAGER_IP=$(terraform output -raw swarm_manager_ip)
 
