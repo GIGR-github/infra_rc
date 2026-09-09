@@ -18,6 +18,7 @@ resource "multipass_instance" "manager" {
   name   = "node-manager-${var.environment}-${count.index + 1}"
   cpus   = var.manager_cpus
   memory = var.manager_memory
+  disk    = var.manager_hdd
   cloud_init = templatefile("${path.module}/init.yml.tftpl", {
     ssh_public_key = var.ssh_public_key
   })
