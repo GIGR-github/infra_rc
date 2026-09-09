@@ -1,7 +1,6 @@
 name: Manual Test App Deployment
 
 on:
-  # Этот триггер включает кнопку ручного запуска в интерфейсе GitHub
   workflow_dispatch:
 
 jobs:
@@ -12,14 +11,44 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Исправленный шаг: проверяем, что пайплайн видит IP-адрес
+
       - name: Verify Swarm Manager IP
         run: |
           echo "=== РУЧНОЙ ТЕСТ ПАЙПЛАЙНА ПРИЛОЖЕНИЯ ==="
           echo "Забираем последний сохраненный IP-адрес из настроек репозитория..."
           echo "Текущий IP для деплоя: ${{ vars.SWARM_MANAGER_IP }}"
+      - name: Prepare env file
+        run: |
+          echo "db_password=${{ secrets.DB_PASSWORD }}" >> manifests/.env.uat
 
-      # Имитация деплоя с использованием этого IP
+
+      - name: Copy docker-compose.app.yml to Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.SWARM_MANAGER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "manifests/docker-compose.app.yml, manifests/.env.uat"
+          target: "/home/ubuntu/apps/my-app/"
+          strip_components: 1
+
+
+      - name: Deploy App to Swarm
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.SWARM_MANAGER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/ubuntu/apps/my-app/
+            cp .env.uat .env
+            if ! docker secret inspect db_password >/dev/null 2>&1; then
+              echo "Создаем Docker Secret db_password..."
+              export $(grep -v '^#' .env | xargs)
+              echo "$db_password" | docker secret create db_password -
+            fi
+            docker stack deploy -c docker-compose.app.yml my-app
+
       - name: Simulate Deployment Steps
         run: |
           echo "1. Беру файл docker-compose.app.yml из этого репозитория..."

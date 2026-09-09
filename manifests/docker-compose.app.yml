@@ -63,4 +63,4 @@ networks:
     external: true
 secrets:
   db_password:
-    file: secrets/db_password.txt
+    external: true
