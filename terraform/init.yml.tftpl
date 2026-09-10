@@ -1,7 +1,20 @@
+# ${path.module}/init.yml.tftpl
 #cloud-config
+package_update: true
+package_upgrade: false
 users:
   - name: ubuntu
     sudo: ALL=(ALL) NOPASSWD:ALL
     shell: /bin/bash
     ssh_authorized_keys:
       - ${ssh_public_key}
+# 2. Ubuntu сама скачает и поставит Docker
+packages:
+  - docker.io
+  - docker-compose-v2
+
+# 3. Запускаем Docker и даем права пользователю ubuntu
+runcmd:
+  - systemctl enable docker
+  - systemctl start docker
+  - usermod -aG docker ubuntu

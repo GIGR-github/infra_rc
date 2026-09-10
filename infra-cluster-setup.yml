@@ -11,12 +11,12 @@
 #   injects runtime secrets via standard input streams, and deploys the
 #   underlying database infrastructure stack without local disk state exposure
 # ==============================================================================
-- name: "Infrastructure: Install Docker Engine on cluster nodes"
-  hosts: cluster
-  become: true
-  tasks:
-    - name: Import Docker install script
-      ansible.builtin.import_tasks: tasks/install-docker.yml
+#- name: "Infrastructure: Install Docker Engine on cluster nodes"
+#  hosts: cluster
+#  become: true
+#  tasks:
+#    - name: Import Docker install script
+#      ansible.builtin.import_tasks: tasks/install-docker.yml
 
 - name: "Swarm Core: Initialize Cluster Manager"
   hosts: managers

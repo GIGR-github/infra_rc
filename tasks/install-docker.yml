@@ -1,41 +1,9 @@
-- name: Completely disable Ubuntu auto-upgrades in configuration files
-  # Переписываем конфиг автоапдейтов, выставляя везде "0" (выключено)
-  ansible.builtin.copy:
-    content: |
-      APT::Periodic::Update-Package-Lists "0";
-      APT::Periodic::Download-Upgradeable-Packages "0";
-      APT::Periodic::AutocleanInterval "0";
-      APT::Periodic::Unattended-Upgrade "0";
-    dest: /etc/apt/apt.conf.dir/20auto-upgrades
-  failed_when: false
-
-- name: Stop and Mask unattended-upgrades and packagekit
-  # Маскируем службы, чтобы система физически не могла их запустить скрытно
-  ansible.builtin.systemd:
-    name: "{{ item }}"
-    state: stopped
-    enabled: no
-    masked: yes # Маскировка намертво блокирует запуск службы
-  loop:
-    - unattended-upgrades
-    - packagekit
-  failed_when: false
-
-- name: Kill any residual apt/dpkg locks
-  ansible.builtin.shell: |
-    killall apt apt-get dpkg unattended-upgrades 2>/dev/null || true
-    rm -f /var/lib/apt/lists/lock /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock
-  failed_when: false
-
-- name: Refresh apt cache manually to stabilize fields
-  ansible.builtin.apt:
+- name: Update apt package cache and install curl
+  apt:
+    name: curl
+    state: present
     update_cache: yes
-  register: apt_result
-  until: apt_result is success
-  retries: 5
-  delay: 5
-
 - name: Install Docker via the official shell script
-  ansible.builtin.shell: "curl -fsSL https://get.docker.com | sh"
+  shell: "curl -fsSL https://get.docker.com | sh"
   args:
     creates: /usr/bin/docker
