@@ -96,7 +96,7 @@ jobs:
           DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
           FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
         run: |
-          ansible-playbook -i ./inventory/nodes.ini ../infra-cluster-setup.yml
+          ansible-playbook -i ../terraform/inventory/nodes.ini ../infra-cluster-setup.yml
 
 
   # ==========================================
