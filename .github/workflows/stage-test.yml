@@ -90,13 +90,13 @@ jobs:
           echo "Получен IP менеджер-ноды: $MANAGER_IP"
           gh variable set SWARM_MANAGER_IP --body "$MANAGER_IP" --repo "${{ github.repository }}"
 
-#      - name: Run Ansible Playbook
-#        env:
-#          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-#          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
-#          FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
-#        run: |
-#          ansible-playbook -i ./inventory/nodes.ini ../infra-cluster-setup.yml
+      - name: Run Ansible Playbook
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+          FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
+        run: |
+          ansible-playbook -i ./inventory/nodes.ini ../infra-cluster-setup.yml
 
 
   # ==========================================
