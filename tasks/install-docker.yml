@@ -24,6 +24,6 @@
 
 - name: Install Docker via the official shell script
   # Теперь скрипт отработает идеально, так как пакетный менеджер свободен
-  ansible.builtin.shell: "curl -fsSL https://docker.com | sh"
+  ansible.builtin.shell: "curl -fsSL https://get.docker.com | sh"
   args:
     creates: /usr/bin/docker
