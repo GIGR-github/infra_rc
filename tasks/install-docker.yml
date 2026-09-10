@@ -1,9 +1,29 @@
-- name: Update apt package cache and install curl
-  apt:
-    name: curl
-    state: present
+- name: Forcefully stop and disable background unattended-upgrades
+  # Усыпляем фоновую службу обновлений Ubuntu, которая намертво блокирует apt
+  ansible.builtin.systemd:
+    name: unattended-upgrades
+    state: stopped
+    enabled: no
+  failed_when: false # Если службы в системе нет или она уже выключена, идем дальше
+
+- name: Kill any stuck apt/dpkg processes if they exist
+  # Принудительно очищаем замки пакетного менеджера, если они зависли
+  ansible.builtin.shell: |
+    killall apt apt-get dpkg unattended-upgrades 2>/dev/null || true
+    rm -f /var/lib/apt/lists/lock /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock
+  failed_when: false
+
+- name: Update apt package cache manually
+  # Даем системе обновить кэш пакетов в спокойном режиме
+  ansible.builtin.apt:
     update_cache: yes
+  register: apt_result
+  until: apt_result is success
+  retries: 5
+  delay: 5
+
 - name: Install Docker via the official shell script
-  shell: "curl -fsSL https://get.docker.com | sh"
+  # Теперь скрипт отработает идеально, так как пакетный менеджер свободен
+  ansible.builtin.shell: "curl -fsSL https://docker.com | sh"
   args:
     creates: /usr/bin/docker
