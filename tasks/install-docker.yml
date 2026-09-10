@@ -1,20 +1,33 @@
-- name: Forcefully stop and disable background unattended-upgrades
-  # Усыпляем фоновую службу обновлений Ubuntu, которая намертво блокирует apt
+- name: Completely disable Ubuntu auto-upgrades in configuration files
+  # Переписываем конфиг автоапдейтов, выставляя везде "0" (выключено)
+  ansible.builtin.copy:
+    content: |
+      APT::Periodic::Update-Package-Lists "0";
+      APT::Periodic::Download-Upgradeable-Packages "0";
+      APT::Periodic::AutocleanInterval "0";
+      APT::Periodic::Unattended-Upgrade "0";
+    dest: /etc/apt/apt.conf.dir/20auto-upgrades
+  failed_when: false
+
+- name: Stop and Mask unattended-upgrades and packagekit
+  # Маскируем службы, чтобы система физически не могла их запустить скрытно
   ansible.builtin.systemd:
-    name: unattended-upgrades
+    name: "{{ item }}"
     state: stopped
     enabled: no
-  failed_when: false # Если службы в системе нет или она уже выключена, идем дальше
+    masked: yes # Маскировка намертво блокирует запуск службы
+  loop:
+    - unattended-upgrades
+    - packagekit
+  failed_when: false
 
-- name: Kill any stuck apt/dpkg processes if they exist
-  # Принудительно очищаем замки пакетного менеджера, если они зависли
+- name: Kill any residual apt/dpkg locks
   ansible.builtin.shell: |
     killall apt apt-get dpkg unattended-upgrades 2>/dev/null || true
     rm -f /var/lib/apt/lists/lock /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock
   failed_when: false
 
-- name: Update apt package cache manually
-  # Даем системе обновить кэш пакетов в спокойном режиме
+- name: Refresh apt cache manually to stabilize fields
   ansible.builtin.apt:
     update_cache: yes
   register: apt_result
@@ -23,7 +36,6 @@
   delay: 5
 
 - name: Install Docker via the official shell script
-  # Теперь скрипт отработает идеально, так как пакетный менеджер свободен
   ansible.builtin.shell: "curl -fsSL https://get.docker.com | sh"
   args:
     creates: /usr/bin/docker
