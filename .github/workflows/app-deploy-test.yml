@@ -21,48 +21,17 @@ jobs:
         run: |
           echo "db_password=${{ secrets.DB_PASSWORD }}" >> manifests/.env.uat
 
-
-      - name: Copy files and deploy via Ansible ad-hoc command (using IP directly)
+      - name: Copy files using local Mac SSH key
         env:
-          # Забираем динамический IP-адрес из переменной репозитория
           TARGET_HOST: ${{ vars.SWARM_MANAGER_IP }}
         run: |
-          echo "=== ЗАПУСК ДЕПЛОЯ ЧЕРЕЗ ANSIBLE ==="
-          
-          # 1. Записываем приватный SSH-ключ во временный файл
-          cat << 'EOF' > private_key.pem
-          ${{ secrets.SSH_PRIVATE_KEY }}
-          EOF
-          chmod 600 private_key.pem
+          # 1. Создаем папку на ВМ (используем тот же путь к ключу, что и Ansible)
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no ubuntu@$TARGET_HOST "mkdir -p /home/ubuntu/apps/my-app/"
 
-          # 2. Копируем файлы manifests/ на сервер напрямую по IP-адресу.
-          # ОБРАТИТЕ ВНИМАНИЕ на запятую после $TARGET_HOST! Это критически важно.
-          ansible all -i "$TARGET_HOST," \
-            --user=ubuntu \
-            --private-key=private_key.pem \
-            --ssh-common-args="-o StrictHostKeyChecking=no" \
-            -m ansible.builtin.copy \
-            -a "src=manifests/ dest=/home/ubuntu/apps/my-app/"
+          # 2. Копируем файлы конфигурации
+          scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no manifests/docker-compose.app.yml ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
+          scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no manifests/.env.uat ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
 
-          # 3. Переименовываем .env.uat в .env внутри вашей виртуалки
-          ansible all -i "$TARGET_HOST," \
-            --user=ubuntu \
-            --private-key=private_key.pem \
-            --ssh-common-args="-o StrictHostKeyChecking=no" \
-            -m ansible.builtin.shell \
-            -a "cp /home/ubuntu/apps/my-app/manifests/.env.uat /home/ubuntu/apps/my-app/.env"
-
-          # 4. Запускаем деплой стека в Docker Swarm
-          ansible all -i "$TARGET_HOST," \
-            --user=ubuntu \
-            --private-key=private_key.pem \
-            --ssh-common-args="-o StrictHostKeyChecking=no" \
-            -m ansible.builtin.shell \
-            -a "cd /home/ubuntu/apps/my-app && docker stack deploy -c manifests/docker-compose.app.yml my-app"
-
-          # 5. Подчищаем временный ключ на вашем Макбуке
-          rm -f private_key.pem
-          echo "=== ДЕПЛОЙ УСПЕШНО ЗАВЕРШЕН ==="
 
 
 
