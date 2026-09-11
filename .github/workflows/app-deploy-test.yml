@@ -21,31 +21,31 @@ jobs:
         run: |
           echo "db_password=${{ secrets.DB_PASSWORD }}" >> manifests/.env.uat
 
-#      - name: Copy files using local Mac SSH key
-#        env:
-#          TARGET_HOST: ${{ vars.SWARM_MANAGER_IP }}
-#        run: |
-#          # 1. Создаем папку на ВМ (используем тот же путь к ключу, что и Ansible)
-#          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no ubuntu@$TARGET_HOST "mkdir -p /home/ubuntu/apps/my-app/"
+      - name: Copy files using local Mac SSH key
+        env:
+          TARGET_HOST: ${{ vars.SWARM_MANAGER_IP }}
+        run: |
+          # 1. Создаем папку на ВМ (используем тот же путь к ключу, что и Ansible)
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no ubuntu@$TARGET_HOST "mkdir -p /home/ubuntu/apps/my-app/"
+
+          # 2. Копируем файлы конфигурации
+          scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no manifests/docker-compose.app.yml ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
+          scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no manifests/.env.uat ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
 #
-#          # 2. Копируем файлы конфигурации
-#          scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no manifests/docker-compose.app.yml ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
-#          scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no manifests/.env.uat ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
-#
 
 
 
 
-      - name: Copy docker-compose.app.yml to Server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ vars.SWARM_MANAGER_IP }}
-          username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "manifests/docker-compose.app.yml, manifests/.env.uat"
-          target: "/home/ubuntu/apps/my-app/"
-          strip_components: 1
-          use_insecure_cipher: true
+#      - name: Copy docker-compose.app.yml to Server
+#        uses: appleboy/scp-action@v0.1.7
+#        with:
+#          host: ${{ vars.SWARM_MANAGER_IP }}
+#          username: ubuntu
+#          key: ${{ secrets.SSH_PRIVATE_KEY }}
+#          source: "manifests/docker-compose.app.yml, manifests/.env.uat"
+#          target: "/home/ubuntu/apps/my-app/"
+#          strip_components: 1
+#          use_insecure_cipher: true
 
 #      - name: Copy files via native SCP
 #        env:
