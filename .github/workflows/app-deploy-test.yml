@@ -37,27 +37,18 @@ jobs:
           SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           TARGET_HOST: ${{ vars.SWARM_MANAGER_IP }}
         run: |
-          # 1. Используем "EOF", чтобы сохранить структуру переноса строк приватного ключа намертво
           cat << 'EOF' > private_key.pem
           ${{ secrets.SSH_PRIVATE_KEY }}
           EOF
-          
           chmod 600 private_key.pem
 
-          # 2. Добавляем флага -o ConnectTimeout=10, чтобы если что-то пойдет не так, шаг падал сразу, а не висел 10 минут
-          # Создаем целевую папку
-          ssh -i private_key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=10 ubuntu@$TARGET_HOST "mkdir -p /home/ubuntu/apps/my-app/"
+          # Добавляем -o BatchMode=yes, чтобы SSH не зависал в ожидании пароля ключа
+          ssh -i private_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 ubuntu@$TARGET_HOST "mkdir -p /home/ubuntu/apps/my-app/"
 
-          # 3. Копируем файлы
-          scp -i private_key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=10 manifests/docker-compose.app.yml ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
-          scp -i private_key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=10 manifests/.env.uat ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
+          scp -i private_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 manifests/docker-compose.app.yml ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
+          scp -i private_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 manifests/.env.uat ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
 
-          # 4. Удаляем временный файл ключа
           rm -f private_key.pem
-
-
-
-
 
       - name: Deploy App to Swarm
         uses: appleboy/ssh-action@v1.0.3
