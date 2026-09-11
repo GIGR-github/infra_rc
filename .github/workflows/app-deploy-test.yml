@@ -22,16 +22,61 @@ jobs:
           echo "db_password=${{ secrets.DB_PASSWORD }}" >> manifests/.env.uat
 
 
-      - name: Copy docker-compose.app.yml to Server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ vars.SWARM_MANAGER_IP }}
-          username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "manifests/docker-compose.app.yml, manifests/.env.uat"
-          target: "/home/ubuntu/apps/my-app/"
-          strip_components: 1
-          use_insecure_cipher: true
+      - name: Copy files and deploy via Ansible ad-hoc command (using IP directly)
+        env:
+          # Забираем динамический IP-адрес из переменной репозитория
+          TARGET_HOST: ${{ vars.SWARM_MANAGER_IP }}
+        run: |
+          echo "=== ЗАПУСК ДЕПЛОЯ ЧЕРЕЗ ANSIBLE ==="
+          
+          # 1. Записываем приватный SSH-ключ во временный файл
+          cat << 'EOF' > private_key.pem
+          ${{ secrets.SSH_PRIVATE_KEY }}
+          EOF
+          chmod 600 private_key.pem
+
+          # 2. Копируем файлы manifests/ на сервер напрямую по IP-адресу.
+          # ОБРАТИТЕ ВНИМАНИЕ на запятую после $TARGET_HOST! Это критически важно.
+          ansible all -i "$TARGET_HOST," \
+            --user=ubuntu \
+            --private-key=private_key.pem \
+            --ssh-common-args="-o StrictHostKeyChecking=no" \
+            -m ansible.builtin.copy \
+            -a "src=manifests/ dest=/home/ubuntu/apps/my-app/"
+
+          # 3. Переименовываем .env.uat в .env внутри вашей виртуалки
+          ansible all -i "$TARGET_HOST," \
+            --user=ubuntu \
+            --private-key=private_key.pem \
+            --ssh-common-args="-o StrictHostKeyChecking=no" \
+            -m ansible.builtin.shell \
+            -a "cp /home/ubuntu/apps/my-app/manifests/.env.uat /home/ubuntu/apps/my-app/.env"
+
+          # 4. Запускаем деплой стека в Docker Swarm
+          ansible all -i "$TARGET_HOST," \
+            --user=ubuntu \
+            --private-key=private_key.pem \
+            --ssh-common-args="-o StrictHostKeyChecking=no" \
+            -m ansible.builtin.shell \
+            -a "cd /home/ubuntu/apps/my-app && docker stack deploy -c manifests/docker-compose.app.yml my-app"
+
+          # 5. Подчищаем временный ключ на вашем Макбуке
+          rm -f private_key.pem
+          echo "=== ДЕПЛОЙ УСПЕШНО ЗАВЕРШЕН ==="
+
+
+
+
+#      - name: Copy docker-compose.app.yml to Server
+#        uses: appleboy/scp-action@v0.1.7
+#        with:
+#          host: ${{ vars.SWARM_MANAGER_IP }}
+#          username: ubuntu
+#          key: ${{ secrets.SSH_PRIVATE_KEY }}
+#          source: "manifests/docker-compose.app.yml, manifests/.env.uat"
+#          target: "/home/ubuntu/apps/my-app/"
+#          strip_components: 1
+#          use_insecure_cipher: true
 #      - name: Copy files via native SCP
 #        env:
 #          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
