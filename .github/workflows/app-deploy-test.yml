@@ -32,24 +32,32 @@ jobs:
 #          target: "/home/ubuntu/apps/my-app/"
 #          strip_components: 1
 #          use_insecure_cipher: true
-      - name: Copy files via native SCP
+      - name: Copy files via native SCP (macOS runner fix)
         env:
           SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           TARGET_HOST: ${{ vars.SWARM_MANAGER_IP }}
         run: |
-          # 1. Записываем ключ во временный файл и выставляем права
-          echo "$SSH_KEY" > private_key.pem
+          # 1. Записываем многострочный ключ без искажения символов
+          cat << 'EOF' > private_key.pem
+          ${{ secrets.SSH_PRIVATE_KEY }}
+          EOF
+          
+          # Ограничиваем права (требование SSH на Mac и Linux)
           chmod 600 private_key.pem
 
-          # 2. Создаем целевую папку на ВМ, используя переменную $TARGET_HOST
+          # 2. Проверяем доступность порта 22 (таймаут 5 секунд)
+          nc -zv -w 5 $TARGET_HOST 22
+
+          # 3. Создаем папку на ВМ
           ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$TARGET_HOST "mkdir -p /home/ubuntu/apps/my-app/"
 
-          # 3. Копируем файлы без интерактивных запросов
+          # 4. Копируем файлы
           scp -i private_key.pem -o StrictHostKeyChecking=no manifests/docker-compose.app.yml ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
           scp -i private_key.pem -o StrictHostKeyChecking=no manifests/.env.uat ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
 
-          # 4. Удаляем временный файл ключа
+          # 5. Стираем ключ
           rm -f private_key.pem
+
 
 
 
