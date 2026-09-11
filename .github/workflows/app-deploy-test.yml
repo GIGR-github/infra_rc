@@ -22,16 +22,36 @@ jobs:
           echo "db_password=${{ secrets.DB_PASSWORD }}" >> manifests/.env.uat
 
 
-      - name: Copy docker-compose.app.yml to Server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ vars.SWARM_MANAGER_IP }}
-          username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "manifests/docker-compose.app.yml, manifests/.env.uat"
-          target: "/home/ubuntu/apps/my-app/"
-          strip_components: 1
-          use_insecure_cipher: true
+#      - name: Copy docker-compose.app.yml to Server
+#        uses: appleboy/scp-action@v0.1.7
+#        with:
+#          host: ${{ vars.SWARM_MANAGER_IP }}
+#          username: ubuntu
+#          key: ${{ secrets.SSH_PRIVATE_KEY }}
+#          source: "manifests/docker-compose.app.yml, manifests/.env.uat"
+#          target: "/home/ubuntu/apps/my-app/"
+#          strip_components: 1
+#          use_insecure_cipher: true
+      - name: Copy files via native SCP
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          TARGET_HOST: ${{ vars.SWARM_MANAGER_IP }}
+        run: |
+          # 1. Записываем ключ во временный файл и выставляем права
+          echo "$SSH_KEY" > private_key.pem
+          chmod 600 private_key.pem
+
+          # 2. Создаем целевую папку на ВМ, используя переменную $TARGET_HOST
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ubuntu@$TARGET_HOST "mkdir -p /home/ubuntu/apps/my-app/"
+
+          # 3. Копируем файлы без интерактивных запросов
+          scp -i private_key.pem -o StrictHostKeyChecking=no manifests/docker-compose.app.yml ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
+          scp -i private_key.pem -o StrictHostKeyChecking=no manifests/.env.uat ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
+
+          # 4. Удаляем временный файл ключа
+          rm -f private_key.pem
+
+
 
 
       - name: Deploy App to Swarm
