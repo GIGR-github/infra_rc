@@ -22,33 +22,33 @@ jobs:
           echo "db_password=${{ secrets.DB_PASSWORD }}" >> manifests/.env.uat
 
 
-#      - name: Copy docker-compose.app.yml to Server
-#        uses: appleboy/scp-action@v0.1.7
-#        with:
-#          host: ${{ vars.SWARM_MANAGER_IP }}
-#          username: ubuntu
-#          key: ${{ secrets.SSH_PRIVATE_KEY }}
-#          source: "manifests/docker-compose.app.yml, manifests/.env.uat"
-#          target: "/home/ubuntu/apps/my-app/"
-#          strip_components: 1
-#          use_insecure_cipher: true
-      - name: Copy files via native SCP
-        env:
-          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          TARGET_HOST: ${{ vars.SWARM_MANAGER_IP }}
-        run: |
-          cat << 'EOF' > private_key.pem
-          ${{ secrets.SSH_PRIVATE_KEY }}
-          EOF
-          chmod 600 private_key.pem
-
-          # Добавляем -o BatchMode=yes, чтобы SSH не зависал в ожидании пароля ключа
-          ssh -i private_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 ubuntu@$TARGET_HOST "mkdir -p /home/ubuntu/apps/my-app/"
-
-          scp -i private_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 manifests/docker-compose.app.yml ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
-          scp -i private_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 manifests/.env.uat ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
-
-          rm -f private_key.pem
+      - name: Copy docker-compose.app.yml to Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.SWARM_MANAGER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "manifests/docker-compose.app.yml, manifests/.env.uat"
+          target: "/home/ubuntu/apps/my-app/"
+          strip_components: 1
+          use_insecure_cipher: true
+#      - name: Copy files via native SCP
+#        env:
+#          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+#          TARGET_HOST: ${{ vars.SWARM_MANAGER_IP }}
+#        run: |
+#          cat << 'EOF' > private_key.pem
+#          ${{ secrets.SSH_PRIVATE_KEY }}
+#          EOF
+#          chmod 600 private_key.pem
+#
+#          # Добавляем -o BatchMode=yes, чтобы SSH не зависал в ожидании пароля ключа
+#          ssh -i private_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 ubuntu@$TARGET_HOST "mkdir -p /home/ubuntu/apps/my-app/"
+#
+#          scp -i private_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 manifests/docker-compose.app.yml ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
+#          scp -i private_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 manifests/.env.uat ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
+#
+#          rm -f private_key.pem
 
       - name: Deploy App to Swarm
         uses: appleboy/ssh-action@v1.0.3
