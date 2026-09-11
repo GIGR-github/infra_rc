@@ -31,6 +31,7 @@ jobs:
           source: "manifests/docker-compose.app.yml, manifests/.env.uat"
           target: "/home/ubuntu/apps/my-app/"
           strip_components: 1
+          use_insecure_cipher: true
 
 
       - name: Deploy App to Swarm
