@@ -39,25 +39,37 @@ jobs:
 
           rm -f private_key.pem
 
-      - name: Deploy App to Swarm
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ vars.SWARM_MANAGER_IP }}
-          username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /home/ubuntu/apps/my-app/
+      - name: Deploy App to Swarm via Native SSH
+        env:
+          TARGET_HOST: ${{ vars.SWARM_MANAGER_IP }}
+        run: |
+          echo "=== ЗАПУСК ДЕПЛОЯ ЧЕРЕЗ SSH ==="
+          
+          # 1. Записываем приватный SSH-ключ во временный файл без искажения строк
+          cat << 'EOF' > private_key.pem
+          ${{ secrets.SSH_PRIVATE_KEY }}
+          EOF
+          chmod 600 private_key.pem
+
+          # 2. Подключаемся по SSH и выполняем всю логику деплоя одной командой
+          # Флаг -T отключает запрос интерактивного терминала tty (чтобы не было зависаний)
+          ssh -i private_key.pem -o StrictHostKeyChecking=no -T ubuntu@$TARGET_HOST << 'SSH_EOF'
+            cd /home/ubuntu/apps/my-app
+          
+            # Переименовываем конфигурационный файл
             cp .env.uat .env
+          
+            # Безопасно создаем Docker Secret, если его еще нет в Swarm
             if ! docker secret inspect db_password >/dev/null 2>&1; then
               echo "Создаем Docker Secret db_password..."
-              export $(grep -v '^#' .env | xargs)
+              export $(grep -v "^#" .env | xargs)
               echo "$db_password" | docker secret create db_password -
             fi
+          
+            # Разворачиваем стек приложения
             docker stack deploy -c docker-compose.app.yml my-app
+          SSH_EOF
 
-      - name: Simulate Deployment Steps
-        run: |
-          echo "1. Беру файл docker-compose.app.yml из этого репозитория..."
-          echo "2. Симулирую отправку файла на IP: ${{ vars.SWARM_MANAGER_IP }}"
-          echo "3. Симулирую команду: ssh user@${{ vars.SWARM_MANAGER_IP }} 'docker stack deploy -c docker-compose.app.yml my-app'"
-          echo "=== ТЕСТОВЫЙ РЕЛИЗ ЗАВЕРШЕН ==="
+          # 3. Подчищаем временный ключ на вашем Макбуке
+          rm -f private_key.pem
+          echo "=== ДЕПЛОЙ УСПЕШНО ЗАВЕРШЕН ==="
