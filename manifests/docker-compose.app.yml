@@ -35,8 +35,8 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: ${APP_PROFILE}
       SPRING_DATASOURCE_URL: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}
-      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${db_password}
+      SPRING_DATASOURCE_USERNAME: rc_user
+      SPRING_DATASOURCE_PASSWORD: 331331papa
       SPRING_CONFIG_IMPORT: "configtree:/run/secrets/"
     secrets:
       - db_password
@@ -49,7 +49,7 @@ services:
       placement:
         constraints:
           - node.labels.type == app
-      replicas: 2
+      replicas: 1
       restart_policy:
         condition: on-failure
         delay: 5s

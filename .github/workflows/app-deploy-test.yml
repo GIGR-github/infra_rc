@@ -63,6 +63,7 @@ jobs:
             if ! docker secret inspect db_password >/dev/null 2>&1; then
               echo "Создаем Docker Secret db_password..."
               export $(grep -v "^#" .env | xargs)
+              echo "$db_password"
               echo "$db_password" | docker secret create db_password -
             fi
           
