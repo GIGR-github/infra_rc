@@ -23,6 +23,11 @@ variable "manager_hdd" {
   description = "Объем HDD для Manager-ноды (например: 2G, 4G)"
 }
 
+variable "worker_hdd" {
+  type        = string
+  description = "Объем HDD для Manager-ноды (например: 2G, 4G)"
+}
+
 variable "worker_memory" {
   type        = string
   description = "Объем RAM для Worker-ноды"
