@@ -34,10 +34,10 @@ services:
     image: ppanbeing/rc:${VERSION:-uat}
     environment:
       SPRING_PROFILES_ACTIVE: ${APP_PROFILE}
-      SPRING_DATASOURCE_URL: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+      SPRING_DATASOURCE_URL: jdbc:mysql://infra_db:${DB_PORT}/${DB_NAME}
       SPRING_DATASOURCE_USERNAME: rc_user
       SPRING_DATASOURCE_PASSWORD: 331331papa
-      SPRING_CONFIG_IMPORT: "configtree:/run/secrets/"
+#      SPRING_CONFIG_IMPORT: "configtree:/run/secrets/"
     secrets:
       - db_password
     ports:
