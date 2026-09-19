@@ -75,6 +75,7 @@ jobs:
         uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: " "
       - name: COPY FILES VIA NATIVE SCP
         # language=bash
         run: |
