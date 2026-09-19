@@ -14,5 +14,5 @@ ${node.name} ansible_host=${node.ipv4[0]}
 
 [cluster:vars]
 ansible_user=ubuntu
-ansible_ssh_private_key_file=~/.ssh/id_ed25519
+ansible_ssh_private_key_file=./private_key.pem
 ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'

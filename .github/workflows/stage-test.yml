@@ -96,7 +96,12 @@ jobs:
           DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
           FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
         run: |
+          cat << 'EOF' > ./private_key.pem
+          ${{ secrets.SSH_PRIVATE_KEY }}
+          EOF
+          chmod 600 private_key.pem
           ansible-playbook -i ../terraform/inventory/nodes.ini ../infra-cluster-setup.yml
+          rm -f ./private_key.pem
 
 
   # ==========================================
