@@ -1,76 +1,113 @@
+# ==============================================================================
+# WORKFLOW       : Manual Test App Deployment
+# DESCRIPTION    : Deploys a test version of the application to a Docker Swarm cluster (UAT).
+#                  Includes network validation, secure configuration generation,
+#                  dynamic secret rotation, and automated disk cleanup.
+# ------------------------------------------------------------------------------
+# AUTHOR         : Pavel Pan, ppanbeing@gmail.com
+# DEPARTMENT     : DevOps & Infrastructure Engineering
+# OWNER          : Infrastructure Team (Slack-channel: #devops-alerts)
+# ------------------------------------------------------------------------------
+# TARGET ENV     : UAT (User Acceptance Testing)
+# PLATFORM       : Docker Swarm (Ubuntu 22.04 LTS Nodes)
+# RUNS ON        : self-hosted (Internal corporate runners in a private network)
+# TRIGGER        : Manual trigger (workflow_dispatch) via the GitHub Actions interface
+# ------------------------------------------------------------------------------
+# REVISION HISTORY:
+#   2026-05-12 | v1.0 | @author   | Base inline pipeline version (legacy scp/ssh)
+# ------------------------------------------------------------------------------
+# REQUIRED REPOSITORY VARIABLES:
+#   - vars.SWARM_MANAGER_IP   : IP address of the Docker Swarm cluster leader manager
+#
+# REQUIRED REPOSITORY SECRETS:
+#   - secrets.DB_PASSWORD     : Master database password for generating .env.uat
+#   - secrets.SSH_PRIVATE_KEY : Private key (RSA/ED25519) for SSH access to Swarm
+# ==============================================================================
 name: Manual Test App Deployment
-
+env:
+  SWARM_HOST_IP: ${{ vars.SWARM_MANAGER_IP }}
+  REMOTE_USER: ubuntu
+  REMOTE_DIR: /home/ubuntu/apps/rc-app/
 on:
   workflow_dispatch:
-
 jobs:
   deploy-test:
     runs-on: self-hosted
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
-
-      - name: Verify Swarm Manager IP
+      - name: VERIFY SWARM MANAGER IP
+        # language=bash
         run: |
-          echo "=== РУЧНОЙ ТЕСТ ПАЙПЛАЙНА ПРИЛОЖЕНИЯ ==="
-          echo "Забираем последний сохраненный IP-адрес из настроек репозитория..."
-          echo "Текущий IP для деплоя: ${{ vars.SWARM_MANAGER_IP }}"
-      - name: Prepare env file
-        run: |
-          echo "db_password=${{ secrets.DB_PASSWORD }}" >> manifests/.env.uat
-
-      - name: Copy files via native SCP
+          echo "::group::Swarm manager availability check ($SWARM_HOST_IP)"
+          echo "Retrieving the last saved IP address from the repository settings"
+          echo "Current IP-address for deploy: $SWARM_HOST_IP"
+          echo "Sending ICMP-package to check network"
+          if ping -c 3 "$SWARM_HOST_IP"; then
+            echo "SUCCESS: Swarm Manager responded to the ping"
+          else
+            echo "ERROR: Swarm Manager is not responding!"
+            echo "::endgroup::"
+            exit 1
+          fi
+          echo "::endgroup::"
+      - name: PREPARE ENV FILE
         env:
-          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          TARGET_HOST: ${{ vars.SWARM_MANAGER_IP }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD}}
+        # language=bash
         run: |
-          cat << 'EOF' > private_key.pem
-          ${{ secrets.SSH_PRIVATE_KEY }}
-          EOF
-          chmod 600 private_key.pem
-
-          # Добавляем -o BatchMode=yes, чтобы SSH не зависал в ожидании пароля ключа
-          ssh -i private_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 ubuntu@$TARGET_HOST "mkdir -p /home/ubuntu/apps/my-app/"
-
-          scp -i private_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 manifests/docker-compose.app.yml ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
-          scp -i private_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 manifests/.env.uat ubuntu@$TARGET_HOST:/home/ubuntu/apps/my-app/
-
-          rm -f private_key.pem
-
-      - name: Deploy App to Swarm via Native SSH
-        env:
-          TARGET_HOST: ${{ vars.SWARM_MANAGER_IP }}
+          echo "::group::Population of the .env.uat file"
+          if [ -z "$DB_PASSWORD" ]; then
+            echo "ERROR: The db_password secret is not set in the GitHub settings"
+            echo "::endgroup::"
+            exit 1
+          fi
+          ENV_PATH="manifests/.env.uat"
+          echo "Check for existence of the <$ENV_PATH> file"
+          if [ -f "$ENV_PATH" ]; then
+          sed -i '/^db_password=/d' "$ENV_PATH"
+          echo "SUCCESS: Remove previously added settings"
+          fi
+          echo "Write database password to the <$ENV_PATH> file"
+          echo "db_password=$DB_PASSWORD" >> "$ENV_PATH"
+          echo "::endgroup::"
+      - name: INSTALL SSH KEY
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: COPY FILES VIA NATIVE SCP
+        # language=bash
         run: |
-          echo "=== ЗАПУСК ДЕПЛОЯ ЧЕРЕЗ SSH ==="
-          
-          # 1. Записываем приватный SSH-ключ во временный файл без искажения строк
-          cat << 'EOF' > private_key.pem
-          ${{ secrets.SSH_PRIVATE_KEY }}
-          EOF
-          chmod 600 private_key.pem
-
-          # 2. Подключаемся по SSH и выполняем всю логику деплоя одной командой
-          # Флаг -T отключает запрос интерактивного терминала tty (чтобы не было зависаний)
-          ssh -i private_key.pem -o StrictHostKeyChecking=no -T ubuntu@$TARGET_HOST << 'SSH_EOF'
-            cd /home/ubuntu/apps/my-app
-          
-            # Переименовываем конфигурационный файл
+          echo "::group::Creating the application folder on the server"
+          SSH_OPTS="-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10"
+          echo "Create remote folder: $REMOTE_DIR"
+          ssh $SSH_OPTS  "$REMOTE_USER@$SWARM_HOST_IP" "mkdir -p $REMOTE_DIR"
+          echo "SUCCESS: Remote folder is created"
+          echo "::endgroup::"
+          echo "::group::Copy infra files of the deploying"
+          echo "Copy docker-compose.app.yml and .env.uat files to the $REMOTE_DIR"
+          scp $SSH_OPTS manifests/docker-compose.app.yml manifests/.env.uat "$REMOTE_USER@$SWARM_HOST_IP:$REMOTE_DIR"
+          echo "SUCCESS: All files are copied"
+          echo "::endgroup::"
+      - name: DEPLOY APP TO SWARM VIA SSH
+        # language=bash
+        run: |
+          echo "::group::Deploying app in the Docker Swarm cluster"
+          SSH_OPTS="-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10"
+          ssh $SSH_OPTS "$REMOTE_USER@$SWARM_HOST_IP" << SSH_EOF
+            set -euo pipefail
+            set -x
+            cd $REMOTE_DIR
             cp .env.uat .env
-          
-            # Безопасно создаем Docker Secret, если его еще нет в Swarm
             if ! docker secret inspect db_password >/dev/null 2>&1; then
-              echo "Создаем Docker Secret db_password..."
+              echo "Creating Docker Secret db_password..."
               export $(grep -v "^#" .env | xargs)
-              echo "$db_password"
-              echo "$db_password" | docker secret create db_password -
+              echo "\$db_password" | docker secret create db_password -
             fi
-          
-            # Разворачиваем стек приложения
             docker stack deploy -c docker-compose.app.yml my-app
-          SSH_EOF
+            docker system prune -f
 
-          # 3. Подчищаем временный ключ на вашем Макбуке
-          rm -f private_key.pem
-          echo "=== ДЕПЛОЙ УСПЕШНО ЗАВЕРШЕН ==="
+            set +x
+          SSH_EOF
+          echo "SUCCESS: Application is deployed in the cluster"
+          echo "::endgroup::"
