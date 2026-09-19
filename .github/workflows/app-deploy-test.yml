@@ -65,7 +65,7 @@ jobs:
           ENV_PATH="manifests/.env.uat"
           echo "Check for existence of the <$ENV_PATH> file"
           if [ -f "$ENV_PATH" ]; then
-          sed -i '/^db_password=/d' "$ENV_PATH"
+          perl -i -pe 's/^db_password=.*//g' "$ENV_PATH"
           echo "SUCCESS: Remove previously added settings"
           fi
           echo "Write database password to the <$ENV_PATH> file"
