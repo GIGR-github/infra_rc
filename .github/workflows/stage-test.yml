@@ -81,7 +81,8 @@ jobs:
           TF_VAR_ssh_public_key: ${{ env.SSH_PUBLIC_KEY }}
   staging-apply:
     name: "Staging: Apply"
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: validate-requirements
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' || (github.event_name == "workflow_dispatch")
     runs-on: self-hosted
     defaults:
       run:
