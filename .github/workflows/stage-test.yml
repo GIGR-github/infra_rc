@@ -1,5 +1,11 @@
 name: "Infrastructure CI/CD"
-
+env:
+  SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+  GH_TOKEN: ${{ secrets.PERSONAL_VAR_TOKEN }}
+  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+  DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+  FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
 on:
   push:
     branches: [ "main" ]
@@ -17,6 +23,29 @@ jobs:
   # ==========================================
   # 1. ПРОВЕРКА И ПЛАН ДЛЯ STAGING (Pull Request)
   # ==========================================
+  validate-requirements:
+    name: "Validation: Requirements"
+    runs-on: self-hosted
+    steps:
+      - name: GLOBAL FF CHECKLIST
+        # language=bash
+        run: |
+          if [ -z "$SSH_PUBLIC_KEY" ]; then
+            echo "ERROR: <SSH_PUBLIC_KEY> is missing"
+            exit 1
+          fi
+          if [ -z "SSH_PRIVATE_KEY" ]; then
+            echo "ERROR: <PERSONAL_VAR_TOKEN> PAT is missing"
+            exit 1
+          fi
+          if [ -z "$GH_TOKEN" ]; then
+            echo "ERROR: <PERSONAL_VAR_TOKEN> PAT is missing"
+            exit 1
+          fi
+          if [[ -z "$DB_PASSWORD" || -z "$DB_ROOT_PASSWORD" || -z "$FLYWAY_PASSWORD" ]]; then
+            echo "ERROR:  Critical variables are missing"
+            exit 1
+          fi
   staging-plan:
     name: "Staging: Validate & Plan"
     if: github.event_name == 'pull_request'
@@ -25,35 +54,31 @@ jobs:
       run:
         working-directory: ./terraform
     steps:
-      - name: Checkout code
+      - name: CHECKOUT CODE
         uses: actions/checkout@v4
         with:
           clean: false
 
-      - name: Setup Terraform
+      - name: SETUP TERRAFORM
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.7.0"
 
-      - name: Init
+      - name: INIT
         run: terraform init
         env:
-          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+          TF_VAR_ssh_public_key: ${{ env.SSH_PUBLIC_KEY }}
 
-      - name: Validate & Format
+      - name: VALIDATE & FORMAT
         run: |
           terraform fmt -check
           terraform validate
 
-      - name: Terraform Plan (Staging)
+      - name: TERRAFORM PLAN (STAGING)
         id: plan
         run: terraform plan -var-file="staging.tfvars" -no-color
         env:
-          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-
-  # ==========================================
-  # 2. АВТО-ДЕПЛОЙ НА STAGING (После мёрджа в main)
-  # ==========================================
+          TF_VAR_ssh_public_key: ${{ env.SSH_PUBLIC_KEY }}
   staging-apply:
     name: "Staging: Apply"
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -62,48 +87,60 @@ jobs:
       run:
         working-directory: ./terraform
     steps:
-      - name: Checkout code
+      - name: CHECKOUT CODE
         uses: actions/checkout@v4
         with:
           clean: true
 
-      - name: Setup Terraform
+      - name: SETUP TERRAFORM
         uses: hashicorp/setup-terraform@v3
 
-      - name: Init
-        run: terraform init
+      - name: INIT TERRAFORM
         env:
-          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-
-      - name: Terraform Apply (Staging)
+          TF_VAR_ssh_public_key: ${{ env.SSH_PUBLIC_KEY }}
+        # language=bash
+        run: |
+          terraform init
+          echo "SUCCESS: Terraform is initialized"
+      - name: TERRAFORM APPLY (STAGING)
         run: terraform apply -var-file="staging.tfvars" -auto-approve
         env:
-          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+          TF_VAR_ssh_public_key: ${{ env.SSH_PUBLIC_KEY }}
 
-      - name: Get IP and Update App Repo Variable
-        env:
-          # Для обновления переменной В ЭТОМ ЖЕ репозитории достаточно встроенного токена!
-          GH_TOKEN: ${{ secrets.PERSONAL_VAR_TOKEN }}
+      - name: GET MANAGER IP-ADDRESS AND UPDATE APP REPO VARIABLE
+        # language=bash
         run: |
+          echo "::group::Get Swarm manager IP-address"
           MANAGER_IP=$(terraform output -raw swarm_manager_ip)
-
-          echo "Получен IP менеджер-ноды: $MANAGER_IP"
+          if [ -z "$MANAGER_IP" ]; then
+            echo "ERROR: TERRAFORM output of the <swarm_manager_ip> is empty"
+            echo "::endgroup::"
+            exit 1
+          fi
+          echo "SUCCESS: Manager IP-address: $MANAGER_IP"
+          echo "::endgroup::"
+          echo "::group::Assign manager IP-address to the repo scope variable"
           gh variable set SWARM_MANAGER_IP --body "$MANAGER_IP" --repo "${{ github.repository }}"
-
-      - name: Run Ansible Playbook
-        env:
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
-          FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
+          echo "SUCCESS: Manager IP-address is saved to the <SWARM_MANAGER_IP> repo scope variable"
+          echo "SWARM_MANAGER_IP=$MANAGER_IP" >> "GITHUB_ENV"
+          echo "::endgroup::"
+      - name: INSTALL SSH KEY
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ env.SSH_PRIVATE_KEY }}
+          name: id_ed25519
+          known_hosts: " "
+      - name: SCAN KNOWN HOSTS
+        # language=bash
         run: |
-          cat << 'EOF' > ./private_key.pem
-          ${{ secrets.SSH_PRIVATE_KEY }}
-          EOF
-          chmod 600 private_key.pem
-          ansible-playbook -i ../terraform/inventory/nodes.ini ../infra-cluster-setup.yml
-          rm -f ./private_key.pem
-
-
+          echo "::group::Add remote host to know_hosts"
+          ssh-keyscan -H "$SWARM_MANAGER_IP" >> ~/.ssh/known_hosts
+          echo "::endgroup::"
+      - name: RUN ANSIBLE PLAYBOOK
+        # language=bash
+        run: |
+          ansible-playbook -i ./inventory/nodes.ini ../infra-cluster-setup.yml
+          echo "SUCCESS: Infra setup is deployed"
   # ==========================================
   # 3. ДЕПЛОЙ НА PRODUCTION (По релизному тегу v*)
   # ==========================================

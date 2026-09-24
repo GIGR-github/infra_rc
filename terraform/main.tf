@@ -24,7 +24,6 @@ resource "multipass_instance" "manager" {
   })
 }
 
-# Создаем N Worker-нод
 resource "multipass_instance" "worker" {
   count  = var.worker_count
   name   = "node-worker-${var.environment}-${count.index + 1}"
