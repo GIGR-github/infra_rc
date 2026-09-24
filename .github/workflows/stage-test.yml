@@ -82,7 +82,7 @@ jobs:
   staging-apply:
     name: "Staging: Apply"
     needs: validate-requirements
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' || (github.event_name == "workflow_dispatch")
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' || (github.event_name == 'workflow_dispatch')
     runs-on: self-hosted
     defaults:
       run:
