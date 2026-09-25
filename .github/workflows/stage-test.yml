@@ -131,6 +131,7 @@ jobs:
           key: ${{ env.SSH_PRIVATE_KEY }}
           name: id_ed25519
           known_hosts: " "
+          if_key_exists: replace
       - name: SCAN KNOWN HOSTS
         # language=bash
         run: |
