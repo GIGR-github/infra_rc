@@ -123,7 +123,7 @@ jobs:
           echo "::group::Assign manager IP-address to the repo scope variable"
           gh variable set SWARM_MANAGER_IP --body "$MANAGER_IP" --repo "${{ github.repository }}"
           echo "SUCCESS: Manager IP-address is saved to the <SWARM_MANAGER_IP> repo scope variable"
-          echo "SWARM_MANAGER_IP=$MANAGER_IP" >> "GITHUB_ENV"
+          echo "SWARM_MANAGER_IP=$MANAGER_IP" >> "$GITHUB_ENV"
           echo "::endgroup::"
       - name: INSTALL SSH KEY
         uses: shimataro/ssh-key-action@v2
@@ -135,6 +135,11 @@ jobs:
       - name: SCAN KNOWN HOSTS
         # language=bash
         run: |
+          if [ -z "$SWARM_MANAGER_IP" ]; then
+            echo "ERROR: Variable SWARM_MANAGER_IP is empty or not set in current env!"
+            echo "::endgroup::"
+            exit 1
+          fi
           echo "::group::Add remote host to know_hosts"
           ssh-keyscan -H "$SWARM_MANAGER_IP" >> ~/.ssh/known_hosts
           echo "::endgroup::"
