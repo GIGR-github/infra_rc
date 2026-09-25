@@ -90,7 +90,7 @@ jobs:
   staging-apply:
     name: "Staging: Apply"
     needs: validate-requirements
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' || (event.inputs.job_to_run == 'STAGING')
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' || (github.event.inputs.job_to_run == 'STAGING')
     runs-on: self-hosted
     defaults:
       run:
@@ -161,7 +161,7 @@ jobs:
   # ==========================================
   prod-apply:
     name: "Production: Apply"
-    if: startsWith(github.ref, 'refs/tags/v') || event.inputs.job_to_run == 'PROD'
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.job_to_run == 'PROD'
     runs-on: self-hosted
     defaults:
       run:
