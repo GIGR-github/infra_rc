@@ -12,8 +12,17 @@ on:
     tags: [ "v*" ]          # Запуск при создании тега (например, v1.0.0)
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch:        # Возможность ручного запуска из интерфейса
-
+  workflow_dispatch:
+    inputs:
+      job_to_run:
+        description: "Select a job to run"
+        required: true
+        default: 'ALL'
+        type: choice
+        options:
+          - ALL
+          - STAGING
+          - PROD
 permissions:
   actions: write
   contents: read
