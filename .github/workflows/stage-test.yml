@@ -26,7 +26,6 @@ permissions:
   actions: write
   contents: read
   pull-requests: write      # Чтобы бот мог писать вывод plan в комменты PR
-
 jobs:
   # ==========================================
   # 1. ПРОВЕРКА И ПЛАН ДЛЯ STAGING (Pull Request)
@@ -65,7 +64,7 @@ jobs:
       - name: CHECKOUT CODE
         uses: actions/checkout@v4
         with:
-          clean: false
+          clean: true
 
       - name: SETUP TERRAFORM
         uses: hashicorp/setup-terraform@v3
@@ -143,13 +142,21 @@ jobs:
       - name: SCAN KNOWN HOSTS
         # language=bash
         run: |
+          echo "::group::Validate <SWARM_MANAGER_I> variable"
           if [ -z "$SWARM_MANAGER_IP" ]; then
-            echo "ERROR: Variable SWARM_MANAGER_IP is empty or not set in current env!"
+            echo "ERROR: Variable SWARM_MANAGER_IP is empty or not set in current env"
             echo "::endgroup::"
             exit 1
           fi
+          echo "::endgroup::"
           echo "::group::Add remote host to know_hosts"
           ssh-keyscan -H "$SWARM_MANAGER_IP" >> ~/.ssh/known_hosts
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "ERROR: Failed to add remote host"
+            echo "::endgroup::"
+            exit 1
+          fi
+          echo "SUCCESS: remote host was added"
           echo "::endgroup::"
       - name: RUN ANSIBLE PLAYBOOK
         # language=bash
