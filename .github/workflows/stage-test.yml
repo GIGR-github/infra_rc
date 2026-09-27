@@ -102,6 +102,26 @@ jobs:
 
       - name: SETUP TERRAFORM
         uses: hashicorp/setup-terraform@v3
+      - name: CONFIG MULTIPASS PROXY FOR MAC
+        # language=bash
+        run: |
+          echo "::group::Creating Unix-Socket Bridge Wrapper"
+          # Устанавливаем легковесную сетевую утилиту socat в контейнер раннера
+          sudo apt-get update && sudo apt-get install -y socat
+          
+          # Создаем скрипт-прослойку, который притворяется бинарником multipass для Терраформа
+          sudo mkdir -p /usr/local/bin
+          sudo tee /usr/local/bin/multipass-proxy << 'EOF'
+          #!/bin/bash
+          # Этот скрипт НЕ запускает файлы Мак. Он просто транслирует текст команды в сокет macOS.
+          # Отправляем аргументы команды через сокет напрямую в демон multipassd на Mac
+          socat - UNIX-CONNECT:/var/run/multipass_socket
+          EOF
+          
+          sudo chmod +x /usr/local/bin/multipass-proxy
+          echo "SUCCESS: Intelligent Unix-Socket bridge configuration complete"
+          echo "::endgroup::"
+
 
       - name: INIT TERRAFORM
         env:

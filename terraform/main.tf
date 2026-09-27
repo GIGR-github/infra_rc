@@ -11,7 +11,9 @@ terraform {
   }
 }
 
-provider "multipass" {}
+provider "multipass" {
+  multipass_path = "/usr/local/bin/multipass-proxy"
+}
 
 resource "multipass_instance" "manager" {
   count  = var.manager_count
