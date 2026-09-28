@@ -102,26 +102,6 @@ jobs:
 
       - name: SETUP TERRAFORM
         uses: hashicorp/setup-terraform@v3
-      - name: CONFIG MULTIPASS PROXY FOR MAC
-        # language=bash
-        run: |
-          echo "::group::Creating Unix-Socket Bridge Wrapper"
-          # Устанавливаем легковесную сетевую утилиту socat в контейнер раннера
-          sudo apt-get update && sudo apt-get install -y socat
-          
-          # Создаем скрипт-прослойку, который притворяется бинарником multipass для Терраформа
-          sudo mkdir -p /usr/local/bin
-          sudo tee /usr/local/bin/multipass-proxy << 'EOF'
-          #!/bin/bash
-          # Этот скрипт НЕ запускает файлы Мак. Он просто транслирует текст команды в сокет macOS.
-          # Отправляем аргументы команды через сокет напрямую в демон multipassd на Mac
-          socat - UNIX-CONNECT:/var/run/multipass_socket
-          EOF
-          
-          sudo chmod +x /usr/local/bin/multipass-proxy
-          echo "SUCCESS: Intelligent Unix-Socket bridge configuration complete"
-          echo "::endgroup::"
-
 
       - name: INIT TERRAFORM
         env:
@@ -159,25 +139,6 @@ jobs:
           name: id_ed25519
           known_hosts: " "
           if_key_exists: replace
-      - name: SCAN KNOWN HOSTS
-        # language=bash
-        run: |
-          echo "::group::Validate <SWARM_MANAGER_I> variable"
-          if [ -z "$SWARM_MANAGER_IP" ]; then
-            echo "ERROR: Variable SWARM_MANAGER_IP is empty or not set in current env"
-            echo "::endgroup::"
-            exit 1
-          fi
-          echo "::endgroup::"
-          echo "::group::Add remote host to know_hosts"
-          ssh-keyscan -H "$SWARM_MANAGER_IP" >> ~/.ssh/known_hosts
-          if [ ! -s ~/.ssh/known_hosts ]; then
-            echo "ERROR: Failed to add remote host"
-            echo "::endgroup::"
-            exit 1
-          fi
-          echo "SUCCESS: remote host was added"
-          echo "::endgroup::"
       - name: RUN ANSIBLE PLAYBOOK
         # language=bash
         run: |
