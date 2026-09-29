@@ -95,16 +95,9 @@ jobs:
       - name: SCAN KNOWN HOSTS
         # language=bash
         run: |
-          echo "::group::Validate <SWARM_MANAGER_I> variable"
-          if [ -z "$SWARM_MANAGER_IP" ]; then
-            echo "ERROR: Variable SWARM_MANAGER_IP is empty or not set in current env"
-            echo "::endgroup::"
-            exit 1
-          fi
-          echo "::endgroup::"
           echo "::group::Add remote host to isolated <know_hosts> file"
           touch "$SSH_KNOWN_HOST"
-          ssh-keyscan -H "$SWARM_MANAGER_IP" >> "$SSH_KNOWN_HOST"
+          ssh-keyscan -H "$SWARM_HOST_IP" >> "$SSH_KNOWN_HOST"
           if [ ! -s "$SSH_KNOWN_HOST" ]; then
             echo "ERROR: Failed to add remote host"
             echo "::endgroup::"
