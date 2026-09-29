@@ -122,7 +122,7 @@ jobs:
       - name: DEPLOY APP TO SWARM VIA SSH
         # language=bash
         run: |
-          SSH_OPTS="-o BatchMode=yes -o ConnectTimeout=10"
+          SSH_OPTS="-o UserKnownHostsFile=$SSH_KNOWN_HOST -o BatchMode=yes -o ConnectTimeout=10"
           ssh $SSH_OPTS "$REMOTE_USER@$SWARM_HOST_IP" << SSH_EOF
             set -euo pipefail
             set -x
