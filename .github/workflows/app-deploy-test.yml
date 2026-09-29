@@ -26,61 +26,97 @@
 name: Manual Test App Deployment
 env:
   SWARM_HOST_IP: ${{ vars.SWARM_MANAGER_IP }}
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
   REMOTE_USER: ubuntu
   REMOTE_DIR: /home/ubuntu/apps/rc-app/
+  SSH_KNOWN_HOST: ./tmp_known_host
 on:
   workflow_dispatch:
 jobs:
   deploy-test:
     runs-on: self-hosted
     steps:
+      - name: CHECK LIST REQUIREMENTS
+        # language=bash
+        run: |
+          if [ -z "$DB_PASSWORD" ]; then
+            echo "ERROR: <secrets.DB_PASSWORD> secret is missing"
+            exit 1
+          fi
+          if [ -z "$SWARM_HOST_IP" ]; then
+            echo "ERROR: <vars.SWARM_MANAGER_IP> secret is missing"
+            exit 1
+          fi 
+          if [ -z "$SSH_PRIVATE_KEY" ]; then
+            echo "ERROR: <secrets.SSH_PRIVATE_KEY> secret is missing"
+            exit 1
+          fi
+          echo "SUCCESS: All configuration variables and secrets are validated"
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          clean: true
       - name: VERIFY SWARM MANAGER IP
         # language=bash
         run: |
-          echo "::group::Swarm manager availability check ($SWARM_HOST_IP)"
-          echo "Retrieving the last saved IP address from the repository settings"
-          echo "Current IP-address for deploy: $SWARM_HOST_IP"
+          echo "Current manager IP-address for deploy: $SWARM_HOST_IP"
           echo "Sending ICMP-package to check network"
           if ping -c 3 "$SWARM_HOST_IP"; then
             echo "SUCCESS: Swarm Manager responded to the ping"
           else
             echo "ERROR: Swarm Manager is not responding!"
-            echo "::endgroup::"
             exit 1
           fi
-          echo "::endgroup::"
       - name: PREPARE ENV FILE
-        env:
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD}}
         # language=bash
         run: |
-          echo "::group::Population of the .env.uat file"
-          if [ -z "$DB_PASSWORD" ]; then
-            echo "ERROR: The db_password secret is not set in the GitHub settings"
+          ENV_PATH="manifests/.env.uat"
+          echo "::group::Check for existence of the <$ENV_PATH> file"
+          if [ ! -f "$ENV_PATH" ]; then
+            echo "ERROR: $ENV_PATH is not exists"
             echo "::endgroup::"
             exit 1
           fi
-          ENV_PATH="manifests/.env.uat"
-          echo "Check for existence of the <$ENV_PATH> file"
-          if [ -f "$ENV_PATH" ]; then
+          echo "SUCCESS: Configuration file found"
+          echo "::endgroup::"
+          echo "::group::Injecting credentials into $ENV_PATH"
           perl -i -pe 's/^db_password=.*//g' "$ENV_PATH"
-          echo "SUCCESS: Remove previously added settings"
-          fi
-          echo "Write database password to the <$ENV_PATH> file"
           echo "db_password=$DB_PASSWORD" >> "$ENV_PATH"
+          echo "SUCCESS: Credentials are injected"
           echo "::endgroup::"
       - name: INSTALL SSH KEY
         uses: shimataro/ssh-key-action@v2
         with:
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ${{ env.SSH_PRIVATE_KEY }}
+          name: id_ed25519
           known_hosts: " "
+          if_key_exists: replace
+      - name: SCAN KNOWN HOSTS
+        # language=bash
+        run: |
+          echo "::group::Validate <SWARM_MANAGER_I> variable"
+          if [ -z "$SWARM_MANAGER_IP" ]; then
+            echo "ERROR: Variable SWARM_MANAGER_IP is empty or not set in current env"
+            echo "::endgroup::"
+            exit 1
+          fi
+          echo "::endgroup::"
+          echo "::group::Add remote host to isolated <know_hosts> file"
+          touch "$SSH_KNOWN_HOST"
+          ssh-keyscan -H "$SWARM_MANAGER_IP" >> "$SSH_KNOWN_HOST"
+          if [ ! -s "$SSH_KNOWN_HOST" ]; then
+            echo "ERROR: Failed to add remote host"
+            echo "::endgroup::"
+            exit 1
+          fi
+          echo "SUCCESS: remote host was added"
+          echo "::endgroup::"
       - name: COPY FILES VIA NATIVE SCP
         # language=bash
         run: |
           echo "::group::Creating the application folder on the server"
-          SSH_OPTS="-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10"
+          SSH_OPTS="-o UserKnownHostsFile=$SSH_KNOWN_HOST -o BatchMode=yes -o ConnectTimeout=10"
           echo "Create remote folder: $REMOTE_DIR"
           ssh $SSH_OPTS  "$REMOTE_USER@$SWARM_HOST_IP" "mkdir -p $REMOTE_DIR"
           echo "SUCCESS: Remote folder is created"
@@ -93,8 +129,7 @@ jobs:
       - name: DEPLOY APP TO SWARM VIA SSH
         # language=bash
         run: |
-          echo "::group::Deploying app in the Docker Swarm cluster"
-          SSH_OPTS="-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10"
+          SSH_OPTS="-o BatchMode=yes -o ConnectTimeout=10"
           ssh $SSH_OPTS "$REMOTE_USER@$SWARM_HOST_IP" << SSH_EOF
             set -euo pipefail
             set -x
@@ -107,8 +142,6 @@ jobs:
             fi
             docker stack deploy -c docker-compose.app.yml my-app
             docker system prune -f
-
             set +x
           SSH_EOF
           echo "SUCCESS: Application is deployed in the cluster"
-          echo "::endgroup::"
