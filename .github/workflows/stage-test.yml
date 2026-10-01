@@ -95,7 +95,7 @@ jobs:
       run:
         working-directory: ./terraform
     env:
-      TF_VAR_ssh_public_key: ${{ env.SSH_PUBLIC_KEY }}
+      TF_VAR_ssh_public_key: $SSH_PUBLIC_KEY
     steps:
       - name: CHECKOUT CODE
         uses: actions/checkout@v4
