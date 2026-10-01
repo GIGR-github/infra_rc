@@ -145,7 +145,7 @@ jobs:
           ansible-playbook -i ./inventory/nodes.ini ../infra-cluster-setup.yml
           echo "SUCCESS: Infra setup is deployed"
       - name: CLEAN INFRA ON FAILURE
-        if: failed()
+        if: failure()
         # language=bash
         run: |
           if [ ! -f "terraform.tfstate" ]; then
