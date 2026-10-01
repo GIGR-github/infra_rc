@@ -111,8 +111,8 @@ jobs:
           terraform init
           echo "SUCCESS: Terraform is initialized"
       - name: TERRAFORM APPLY (STAGING)
-        env:
-          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+#        env:
+#          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
         run: terraform apply -var-file="staging.tfvars" -auto-approve
 
       - name: GET MANAGER IP-ADDRESS AND UPDATE APP REPO VARIABLE
