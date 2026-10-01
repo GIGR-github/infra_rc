@@ -94,6 +94,8 @@ jobs:
     defaults:
       run:
         working-directory: ./terraform
+    env:
+      TF_VAR_ssh_public_key: ${{ env.SSH_PUBLIC_KEY }}
     steps:
       - name: CHECKOUT CODE
         uses: actions/checkout@v4
@@ -104,16 +106,12 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: INIT TERRAFORM
-        env:
-          TF_VAR_ssh_public_key: ${{ env.SSH_PUBLIC_KEY }}
         # language=bash
         run: |
           terraform init
           echo "SUCCESS: Terraform is initialized"
       - name: TERRAFORM APPLY (STAGING)
         run: terraform apply -var-file="staging.tfvars" -auto-approve
-        env:
-          TF_VAR_ssh_public_key: ${{ env.SSH_PUBLIC_KEY }}
 
       - name: GET MANAGER IP-ADDRESS AND UPDATE APP REPO VARIABLE
         # language=bash
