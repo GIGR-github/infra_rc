@@ -144,6 +144,16 @@ jobs:
         run: |
           ansible-playbook -i ./inventory/nodes.ini ../infra-cluster-setup.yml
           echo "SUCCESS: Infra setup is deployed"
+      - name: CLEAN INFRA ON FAILURE
+        if: failed()
+        # language=bash
+        run: |
+          if [ ! -f "terraform.tfstate" ]; then
+            echo "ERROR: Terraform state is not found"
+          else 
+            TF_VAR_ssh_public_key="$SSH_PUBLIC_KEY" terraform destroy -var-file="staging.tfvars" -auto-approve
+            echo "SUCCESS: Infra was cleaned"
+          fi
   # ==========================================
   # 3. ДЕПЛОЙ НА PRODUCTION (По релизному тегу v*)
   # ==========================================
