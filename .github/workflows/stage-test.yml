@@ -96,6 +96,7 @@ jobs:
         working-directory: ./terraform
     env:
       TF_VAR_ssh_public_key: $SSH_PUBLIC_KEY
+      TARGET_ENV_TF: "staging.tfvars"
     steps:
       - name: CHECKOUT CODE
         uses: actions/checkout@v4
@@ -113,7 +114,7 @@ jobs:
       - name: TERRAFORM APPLY (STAGING)
 #        env:
 #          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-        run: terraform apply -var-file="staging.tfvars" -auto-approve
+        run: terraform apply -var-file="$TARGET_ENV_TF" -auto-approve
 
       - name: GET MANAGER IP-ADDRESS AND UPDATE APP REPO VARIABLE
         # language=bash
@@ -147,13 +148,7 @@ jobs:
       - name: CLEAN INFRA ON FAILURE
         if: failure()
         # language=bash
-        run: |
-          if [ ! -f "terraform.tfstate" ]; then
-            echo "ERROR: Terraform state is not found"
-          else 
-            TF_VAR_ssh_public_key="$SSH_PUBLIC_KEY" terraform destroy -var-file="staging.tfvars" -auto-approve
-            echo "SUCCESS: Infra was cleaned"
-          fi
+        run: ../scripts/rollback.sh
   # ==========================================
   # 3. ДЕПЛОЙ НА PRODUCTION (По релизному тегу v*)
   # ==========================================
