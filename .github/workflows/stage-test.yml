@@ -36,23 +36,7 @@ jobs:
     steps:
       - name: GLOBAL FF CHECKLIST
         # language=bash
-        run: |
-          if [ -z "$SSH_PUBLIC_KEY" ]; then
-            echo "ERROR: <SSH_PUBLIC_KEY> is missing"
-            exit 1
-          fi
-          if [ -z "SSH_PRIVATE_KEY" ]; then
-            echo "ERROR: <PERSONAL_VAR_TOKEN> PAT is missing"
-            exit 1
-          fi
-          if [ -z "$GH_TOKEN" ]; then
-            echo "ERROR: <PERSONAL_VAR_TOKEN> PAT is missing"
-            exit 1
-          fi
-          if [[ -z "$DB_PASSWORD" || -z "$DB_ROOT_PASSWORD" || -z "$FLYWAY_PASSWORD" ]]; then
-            echo "ERROR:  Critical variables are missing"
-            exit 1
-          fi
+        run: ../scripts/ff-checklist.sh
   staging-plan:
     name: "Staging: Validate & Plan"
     if: github.event_name == 'pull_request'
@@ -118,21 +102,21 @@ jobs:
 
       - name: GET MANAGER IP-ADDRESS AND UPDATE APP REPO VARIABLE
         # language=bash
-        run: |
-          echo "::group::Get Swarm manager IP-address"
-          MANAGER_IP=$(terraform output -raw swarm_manager_ip)
-          if [ -z "$MANAGER_IP" ]; then
-            echo "ERROR: TERRAFORM output of the <swarm_manager_ip> is empty"
-            echo "::endgroup::"
-            exit 1
-          fi
-          echo "SUCCESS: Manager IP-address: $MANAGER_IP"
-          echo "::endgroup::"
-          echo "::group::Assign manager IP-address to the repo scope variable"
-          gh variable set SWARM_MANAGER_IP --body "$MANAGER_IP" --repo "${{ github.repository }}"
-          echo "SUCCESS: Manager IP-address is saved to the <SWARM_MANAGER_IP> repo scope variable"
-          echo "SWARM_MANAGER_IP=$MANAGER_IP" >> "$GITHUB_ENV"
-          echo "::endgroup::"
+        run: ../scripts/get-ip-manager.sh
+#          echo "::group::Get Swarm manager IP-address"
+#          MANAGER_IP=$(terraform output -raw swarm_manager_ip)
+#          if [ -z "$MANAGER_IP" ]; then
+#            echo "ERROR: TERRAFORM output of the <swarm_manager_ip> is empty"
+#            echo "::endgroup::"
+#            exit 1
+#          fi
+#          echo "SUCCESS: Manager IP-address: $MANAGER_IP"
+#          echo "::endgroup::"
+#          echo "::group::Assign manager IP-address to the repo scope variable"
+#          gh variable set SWARM_MANAGER_IP --body "$MANAGER_IP" --repo "${{ github.repository }}"
+#          echo "SUCCESS: Manager IP-address is saved to the <SWARM_MANAGER_IP> repo scope variable"
+#          echo "SWARM_MANAGER_IP=$MANAGER_IP" >> "$GITHUB_ENV"
+#          echo "::endgroup::"
       - name: INSTALL SSH KEY
         uses: shimataro/ssh-key-action@v2
         with:
