@@ -78,7 +78,6 @@ jobs:
       run:
         working-directory: ./terraform
     env:
-      TF_VAR_ssh_public_key: $SSH_PUBLIC_KEY
       TARGET_ENV_TF: "staging.tfvars"
     steps:
       - name: CHECKOUT CODE
