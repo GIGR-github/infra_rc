@@ -92,6 +92,8 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: DEPLOY INFRA ENV
+        env:
+          TF_VAR_ssh_public_key: $SSH_PUBLIC_KEY
         run: ../scripts/deploy-infra.sh
 
       - name: GET MANAGER IP-ADDRESS AND UPDATE APP REPO VARIABLE
@@ -111,6 +113,8 @@ jobs:
 
       - name: CLEAN INFRA ON FAILURE
         if: failure()
+        env:
+          TF_VAR_ssh_public_key: $SSH_PUBLIC_KEY
         run: ../scripts/rollback.sh
   # ==========================================
   # 3. ДЕПЛОЙ НА PRODUCTION (По релизному тегу v*)
