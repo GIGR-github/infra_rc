@@ -1,4 +1,4 @@
-name: "Infra deploy template"
+name: "Template: Infra deploy"
 on:
   workflow_call:
     inputs:
@@ -8,12 +8,16 @@ on:
       target_env_tf:
         required: true
         type: string
+      public_ssh:
+        required: true
+        type: string
     secrets:
       SSH_PRIVATE_KEY_SECRET:
         required: true
 jobs:
   base-deploy:
     runs-on: self-hosted
+    environment: ${{ inputs.target_env }}
     defaults:
       run:
         working-directory: ./terraform

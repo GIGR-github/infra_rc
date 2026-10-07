@@ -1,8 +1,8 @@
-name: "Infra deploy CI/CD"
+name: "Infra deploy env"
 env:
   SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+  SSH_PRIVATE_KEY: ${ secrets.SSH_PRIVATE_KEY }}
   GH_TOKEN: ${{ secrets.PERSONAL_VAR_TOKEN }}
-  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
   DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
   DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
   FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
@@ -31,8 +31,10 @@ jobs:
     name: "STAGING"
     if: github.ref == 'refs/heads/main' && github.event_name == 'push' || (github.event.inputs.job_to_run == 'STAGING')
     uses: ./.github/workflows/_deploy-infra.yml
+
     with:
       target_env: "STAGING"
       target_env_tf: "staging.tfvars"
+      public_ssh: ${{ secrets.SSH_PUBLIC_KEY }}
     secrets:
-      SSH_PRIVATE_KEY_SECRET: ${{ secrets.SSH_PRIVATE_KEY }}
+      inherit
