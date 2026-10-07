@@ -8,12 +8,6 @@ on:
       target_env_tf:
         required: true
         type: string
-      public_ssh:
-        required: true
-        type: string
-    secrets:
-      SSH_PRIVATE_KEY_SECRET:
-        required: true
 jobs:
   base-deploy:
     runs-on: self-hosted
