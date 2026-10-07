@@ -1,0 +1,60 @@
+name: "Infra deploy template"
+on:
+  workflow_call:
+    inputs:
+      target_env:
+        required: true
+        type: string
+      target_env_tf:
+        required: true
+        type: string
+    secrets:
+      SSH_PRIVATE_KEY_SECRET:
+        required: true
+jobs:
+  base-deploy:
+    runs-on: self-hosted
+    defaults:
+      run:
+        working-directory: ./terraform
+    env:
+      TARGET_ENV: ${{ inputs.target_env }}
+      TARGET_ENV_TF: ${{ inputs.target_env_tf }}
+    steps:
+      - name: CHECKOUT CODE
+        uses: actions/checkout@v4
+        with:
+          clean: true
+
+      - name: GLOBAL FF CHECKLIST
+        run: ../scripts/ff-checklist.sh
+
+      - name: SETUP TERRAFORM
+        uses: hashicorp/setup-terraform@v3
+
+      - name: DEPLOY INFRA ENV
+        #language=bash
+        run: TF_VAR_ssh_public_key="$SSH_PUBLIC_KEY" ../scripts/deploy-infra.sh
+
+      - name: GET MANAGER IP-ADDRESS AND UPDATE APP REPO VARIABLE
+        #language=bash
+        run: ../scripts/get-ip-manager.sh
+
+      - name: INSTALL SSH KEY
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY_SECRET }}
+          name: id_ed25519
+          known_hosts: " "
+          if_key_exists: replace
+      - name: RUN ANSIBLE PLAYBOOK
+        #language=bash
+        run: |
+          ansible-playbook -i ./inventory/nodes.ini ../infra-cluster-setup.yml
+          echo "SUCCESS: Infra setup is deployed"
+
+      - name: CLEAN INFRA ON FAILURE
+        if: failure()
+        #language=bash
+        run: TF_VAR_ssh_public_key="$SSH_PUBLIC_KEY" ../scripts/rollback.sh
+

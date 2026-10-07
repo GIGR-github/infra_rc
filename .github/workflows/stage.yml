@@ -1,0 +1,38 @@
+name: "Infra deploy CI/CD"
+env:
+  SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+  GH_TOKEN: ${{ secrets.PERSONAL_VAR_TOKEN }}
+  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+  DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+  FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]          # Запуск при создании тега (например, v1.0.0)
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      job_to_run:
+        description: "Select a job to run"
+        required: true
+        default: 'STAGING'
+        type: choice
+        options:
+          - STAGING
+          - PROD
+permissions:
+  actions: write
+  contents: read
+  pull-requests: write      # Чтобы бот мог писать вывод plan в комменты PR
+jobs:
+  staging-apply:
+    name: "STAGING"
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' || (github.event.inputs.job_to_run == 'STAGING')
+    uses: ./.github/workflows/_deploy-infra.yml
+    with:
+      target_env: "STAGING"
+      target_env_tf: "staging.tfvars"
+    secrets:
+      SSH_PRIVATE_KEY_SECRET: ${{ secrets.SSH_PRIVATE_KEY }}
