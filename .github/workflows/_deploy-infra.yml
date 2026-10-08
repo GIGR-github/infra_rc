@@ -16,6 +16,12 @@ jobs:
       run:
         working-directory: ./terraform
     env:
+      SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      GH_TOKEN: ${{ secrets.PERSONAL_VAR_TOKEN }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+      FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
       TARGET_ENV: ${{ inputs.target_env }}
       TARGET_ENV_TF: ${{ inputs.target_env_tf }}
     steps:
