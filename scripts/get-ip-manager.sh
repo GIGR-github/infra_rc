@@ -7,7 +7,7 @@ if [ -z "$MANAGER_IP" ]; then
   echo "::endgroup::"
   exit 1
 fi
-STAGE_ENV="${STAGE_ENV}_MANAGER_IP"
+STAGE_ENV="${TARGET_ENV}_MANAGER_IP"
 echo "SUCCESS: Manager IP-address: $MANAGER_IP"
 echo "::endgroup::"
 echo "::group::Assign manager IP-address to the repo scope variable"
