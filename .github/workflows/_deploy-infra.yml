@@ -29,11 +29,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: true
-      - name: EXPORT ALL SECRETS TO ENV
-        uses: 05ndt/envfile@v2
+      - name: EXPORT ALL SECRETS TO OS ENVIRONMENT
+        uses: oNaiPs/secrets-to-env-action@v1
         with:
+            # Передаем унаследованный сейф секретов целиком, и плагин сам
+            # бесшумно создаст из них живые переменные ($DB_PASSWORD и т.д.)
           secrets: ${{ toJSON(secrets) }}
-          file: ""
 
 
       - name: GLOBAL FF CHECKLIST
