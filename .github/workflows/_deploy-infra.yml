@@ -30,7 +30,7 @@ jobs:
         with:
           clean: true
       - name: EXPORT ALL SECRETS TO ENV
-        uses: o5ndt/envfile@v2
+        uses: 05ndt/envfile@v2
         with:
           secrets: ${{ toJSON(secrets) }}
           file: ""
