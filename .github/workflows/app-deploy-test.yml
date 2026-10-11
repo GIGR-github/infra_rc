@@ -25,7 +25,7 @@
 # ==============================================================================
 name: Manual Test App Deployment
 env:
-  SWARM_HOST_IP: ${{ vars.SWARM_MANAGER_IP }}
+  SWARM_HOST_IP: ${{ vars.STAGING_MANAGER_IP }}
   DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
   SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
   REMOTE_USER: ubuntu
