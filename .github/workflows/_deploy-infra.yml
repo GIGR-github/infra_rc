@@ -5,9 +5,9 @@ on:
       target_env:
         required: true
         type: string
-concurrency:
-  group: ${{ github.workflow }}-${{ inputs.target_env }}
-  cancel-in-progress: false
+#concurrency:
+#  group: ${{ github.workflow }}-${{ inputs.target_env }}
+#  cancel-in-progress: false
 jobs:
   base-deploy:
     name: "Deploy infra to [${{ inputs.target_env }}]"
