@@ -8,19 +8,19 @@ if [[ -z "$TARGET_ENV_TF" ]]; then
   echo "ERROR: <TARGET_ENV_TF> is missing"
   exit 1
 fi
-if [[ -z "$SSH_PUBLIC_KEY" ]]; then
+if [[ "$HAS_SSH_PUBLIC_KEY" = "false" ]]; then
   echo "ERROR: <SSH_PUBLIC_KEY> is missing"
   exit 1
 fi
-if [[ -z "$SSH_PRIVATE_KEY" ]]; then
+if [[ "$HAS_SSH_PRIVATE_KEY" = "false" ]]; then
   echo "ERROR: <PERSONAL_VAR_TOKEN> PAT is missing"
   exit 1
 fi
-if [[ -z "$GH_TOKEN" ]]; then
+if [[ "$HAS_GH_TOKEN" = "false" ]]; then
   echo "ERROR: <PERSONAL_VAR_TOKEN> PAT is missing"
   exit 1
 fi
-if [[ -z "$DB_PASSWORD" || -z "$DB_ROOT_PASSWORD" || -z "$FLYWAY_PASSWORD" ]]; then
-  echo "ERROR:  Critical variables are missing"
+if [[ "$HAS_DB_PASSWORD" = "false" || "$DB_ROOT_PASSWORD" = "false" || "$FLYWAY_PASSWORD" = "false" ]]; then
+  echo "ERROR:  Critical database variables are missing"
   exit 1
 fi
