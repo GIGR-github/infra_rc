@@ -21,6 +21,10 @@ jobs:
       TARGET_ENV: ${{ inputs.target_env }}
       TARGET_ENV_TF: ${{ vars.TARGET_ENV_TF }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          clean: true
       - name: Global ff checklist
         #language=bash
         run: |
@@ -32,13 +36,6 @@ jobs:
             exit 1
           fi
           ../scripts/ff-checklist.sh
-        
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          clean: true
-
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v3
 
