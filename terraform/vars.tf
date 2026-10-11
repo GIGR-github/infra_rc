@@ -45,4 +45,5 @@ variable "worker_cpus" {
 variable "ssh_public_key" {
   type        = string
   description = "Public SSH key content for cloud-init"
+  default = ""
 }

@@ -26,6 +26,5 @@ jobs:
     uses: ./.github/workflows/_deploy-infra.yml
     with:
       target_env: "STAGING"
-      target_env_tf: "staging.tfvars"
     secrets:
       inherit
