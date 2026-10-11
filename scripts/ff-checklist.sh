@@ -9,7 +9,7 @@ if [[ -z "$TARGET_ENV_TF" ]]; then
   exit 1
 fi
 if [[ "${HAS_SSH_PUBLIC_KEY,,}" != "true" ]]; then
-  echo "ERROR: <SSH_PUBLIC_KEY> is missing"
+  echo "ERROR: <SSH_PUBLIC_KEY>: $HAS_SSH_PUBLIC_KEY is missing"
   exit 1
 fi
 if [[ "$HAS_SSH_PRIVATE_KEY" != "true" ]]; then
