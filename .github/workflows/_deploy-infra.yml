@@ -23,12 +23,12 @@ jobs:
     steps:
       - name: Global ff checklist
         env:
-          HAS_SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY == '' }}
-          HAS_SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY == '' }}
-          HAS_GH_TOKEN: ${{ secrets.PERSONAL_VAR_TOKEN  == '' }}
-          HAS_DB_PASSWORD: ${{ secrets.DB_PASSWORD == '' }}
-          HAS_DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD == '' }}
-          HAS_FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD == '' }}
+          HAS_SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY != '' }}
+          HAS_SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY != '' }}
+          HAS_GH_TOKEN: ${{ secrets.PERSONAL_VAR_TOKEN  != '' }}
+          HAS_DB_PASSWORD: ${{ secrets.DB_PASSWORD != '' }}
+          HAS_DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD != '' }}
+          HAS_FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD != '' }}
         run: ../scripts/ff-checklist.sh
 
       - name: Checkout code
