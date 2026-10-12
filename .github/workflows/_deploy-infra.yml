@@ -5,9 +5,9 @@ on:
       target_env:
         required: true
         type: string
-#concurrency:
-#  group: ${{ github.workflow }}-${{ inputs.target_env }}
-#  cancel-in-progress: false
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.target_env }}
+  cancel-in-progress: false
 jobs:
   base-deploy:
     name: "Deploy infra to [${{ inputs.target_env }}]"
@@ -30,7 +30,7 @@ jobs:
         run: |
           if [ -z "${{ secrets.SSH_PUBLIC_KEY }}" ]; then echo "ERROR: SSH_PUBLIC_KEY is missinga"; exit 1; fi
           if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then echo "ERROR: SSH_PRIVATE_KEY is missing"; exit 1; fi
-          if [ -z "${{ secrets.GH_TOKEN }}" ]; then echo "ERROR: PERSONAL_VAR_TOKEN PAT is missing"; exit 1; fi
+          if [ -z "${{ secrets.GH_TOKEN }}" ]; then echo "ERROR: GH_TOKEN is missing"; exit 1; fi
           if [ -z "${{ secrets.DB_PASSWORD }}" ] || [ -z "${{ secrets.DB_ROOT_PASSWORD }}" ] || [ -z "${{ secrets.FLYWAY_PASSWORD }}" ]; then
             echo "ERROR: Critical database variables are missing"
             exit 1
