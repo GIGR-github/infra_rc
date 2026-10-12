@@ -7,7 +7,7 @@ assignees: ''
 ---
 
 ### Описание проблемы
-Что пошло не так? (например: *упал GitHub Actions workflow*, *ошибка на этапе Terraform Apply*, *сервис не прошел healthcheck после автодеплоя*).
+Например: *упал GitHub Actions workflow*, *ошибка на этапе Terraform Apply*, *сервис не прошел healthcheck после автодеплоя*).
 
 ### Детали пайплайна
 - **ID или название Workflow:** [например, `Deploy to Production` / `.github/workflows/deploy.yml`]
