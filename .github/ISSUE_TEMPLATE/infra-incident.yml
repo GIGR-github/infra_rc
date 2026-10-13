@@ -1,0 +1,64 @@
+name: "Production Incident"
+description: "Report an unscheduled outage, failure, or critical infrastructure issue"
+title: "[INCIDENT]: "
+labels: ["incident", "priority/high", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please provide details about the incident to help the team respond and resolve the issue quickly.
+  - type: dropdown
+    id: severity
+    attributes:
+      label: "1. Incident Severity"
+      description: "Assess the impact of the outage on services and operations."
+      options:
+        - "Critical (Full system outage / Services completely unavailable)"
+        - "Major (Partial degradation / Key feature or service unavailable)"
+        - "Minor (Minor issue / Non-critical performance degradation)"
+    validations:
+      required: true
+
+  - type: input
+    id: affected_services
+    attributes:
+      label: "2. Affected Components / Services"
+      description: "Specify affected containers, stacks, servers, or databases."
+      placeholder: "e.g., monolith-app, db-cluster, edge-proxy"
+    validations:
+      required: true
+
+  - type: textarea
+    id: symptom
+    attributes:
+      label: "3. Symptom & Problem Description"
+      description: "What exactly happened? How is the issue manifesting?"
+      placeholder: "Application is returning 502 Bad Gateway, connection timeout in logs..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs_or_errors
+    attributes:
+      label: "4. Relevant Logs or Error Traces"
+      description: "Paste relevant log snippets, stack traces, or terminal output."
+      placeholder: "docker service logs ... / java.lang.OutOfMemoryError..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: immediate_actions
+    attributes:
+      label: "5. Immediate Mitigations Taken"
+      description: "What emergency steps or workarounds have been applied so far?"
+      placeholder: "Restarted container instance, rolled back deployment..."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: acknowledgement
+    attributes:
+      label: "Acknowledgement"
+      options:
+        - label: "I acknowledge that a root cause analysis (RCA) must be completed after system stabilization."
+          required: true
