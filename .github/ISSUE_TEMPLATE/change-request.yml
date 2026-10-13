@@ -1,0 +1,57 @@
+name: "Request for Change (RFC)"
+description: "Propose a planned change to infrastructure, deployment parameters, or runtime configuration"
+title: "[RFC]: "
+labels: ["change-request", "needs-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        All planned infrastructure or deployment updates must be documented and reviewed using this form.
+  - type: textarea
+    id: summary
+    attributes:
+      label: "1. Proposed Changes"
+      description: "Describe what will be changed (e.g., Terraform resources, Ansible variables, container environment settings)."
+      placeholder: "Increasing CPU/RAM limits, adding new environment variable, updating base image version..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: justification
+    attributes:
+      label: "2. Business & Technical Justification"
+      description: "Why is this change necessary? (Link related features, tickets, or performance issues)."
+      placeholder: "Required to support increased traffic loads during upcoming release..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: "3. Target Environment"
+      description: "Select the environment where this change will be applied."
+      options:
+        - Production
+        - Staging
+        - Development
+    validations:
+      required: true
+
+  - type: textarea
+    id: rollback_plan
+    attributes:
+      label: "4. Rollback Plan"
+      description: "Explicit step-by-step instructions to revert this change if failure occurs post-deployment."
+      placeholder: "Execute git revert <commit_id>, re-apply Terraform state, restart stack..."
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: validation_checks
+    attributes:
+      label: "Pre-deployment Validation"
+      options:
+        - label: "I have tested these changes in a local/staging environment."
+          required: true
+        - label: "I have verified that the rollback plan is executable without data loss."
+          required: true
