@@ -32,11 +32,11 @@ To maintain system stability, security, and traceability across environments, al
 
 We use structured GitHub Issue Forms to track all planned changes and unscheduled outages.
 
-### 1. Production Incidents (`01-infra-incident.yml`)
+### 1. Production Incidents (`infra-incident.yml`)
 * Use this form for unscheduled system outages, service degradations, or critical component failures.
 * **Requirement:** After the system is stabilized, a **Root Cause Analysis (RCA)** must be completed and documented in the issue before it can be closed.
 
-### 2. Request for Change / RFC (`02-change-request.yml`)
+### 2. Request for Change / RFC (`change-request.yml`)
 * Use this form for any planned update to environment variables, server resources, stack configurations, or architecture.
 * **Requirement:** Every RFC must include a validated **Rollback Plan** and business/technical justification prior to review.
 
@@ -89,7 +89,6 @@ We enforce the [Conventional Commits](https://www.conventionalcommits.org/) spec
 - docker / swarm: Compose stacks, Swarm services, networks, resource limits.
 - ci: GitHub Actions pipelines and deployment runners.
 - templates: GitHub Issue Forms (.github/ISSUE_TEMPLATE/).
-- docs: Infrastructure and project documentation.
 
 ### Linking Commits to Issues
 Every pull request or commit merged into main must be linked to an open RFC or Incident Issue using GitHub closing keywords:
@@ -108,18 +107,31 @@ Fixes #104
 ---
 
 ## Pull Request (PR) & Code Review Process
-- Self-Review: Before requesting a review, verify that your changes pass all local linting checks (e.g., terraform validate, ansible-lint, Dockerfile linters).
-- PR Description: Describe what was changed, link the relevant Issue ID (Closes #ID), and attach test/validation output.
-- Approvals: At least one review approval from an infrastructure lead/peer is required before merging into main.
-- Merge Method: Use Squash and Merge or Rebase and Merge to keep the main branch history clean and linear.
+- **Self-Review:** Before requesting a review, verify that your changes pass all local linting checks (e.g., terraform validate, ansible-lint, Dockerfile linters).
+- **PR Description:** Describe what was changed, link the relevant Issue ID (Closes #ID), and attach test/validation output.
+- **Approvals:** At least one review approval from an infrastructure lead/peer is required before merging into main.
+- **Merge Method:** Use Squash and Merge or Rebase and Merge to keep the main branch history clean and linear.
 - **Staging Verification:** Any change to core infrastructure, networking, or orchestration MUST be deployed and verified in the `staging` or `dev` environment prior to merging into `main`.
+- **CODEOWNERS Routing:** Reviewers are automatically assigned via the `.github/CODEOWNERS` file based on the modified directories. At least one review approval from the designated area lead is required.
 - **Dry-Run Validation:** PR descriptions must include logs of a successful dry-run execution (e.g., `terraform plan` output showing exactly what resources will be created/destroyed, or `ansible-playbook --check`).
 - **Breaking Changes Flag:** If a change causes resource destruction/recreation (e.g., database instances, volumes), the author must explicitly tag the PR with a `breaking-change` label and coordinate maintenance windows.
 
 ---
 
+## Application Containerization & Spring Boot Standards
+
+To ensure optimal performance, security, and reproducibility of Java Spring Boot applications within our infrastructure, all Dockerfiles and images must follow these rules:
+
+- **Multi-Stage Builds:** All Java applications must utilize multi-stage Docker builds. The build stage must run on the appropriate JDK (e.g., Maven/Gradle with OpenJDK), while the final runtime image must only contain the JRE and the compiled `.jar` file.
+- **Distroless / Secure Base Images:** Never use full OS distributions (like Ubuntu or standard Debian) for running Spring applications in production. Use production-ready, minimal, hardened base images such as **Eclipse Temurin (Alpine/Distroless)**.
+- **Non-Root Execution:** Spring Boot applications must **never** run as `root` inside the container. Explicitly create a system group/user and switch to it using the `USER` directive in the Dockerfile.
+- **Memory Configurations:** Ensure that JVM memory flags (`-XX:MaxRAMPercentage`, `-XX:InitialRAMPercentage`) are correctly configured in the environment variables to respect Docker container cgroup memory limits and prevent OOM-Kills.
+
+---
+
 ## Security & Secrets Management
 
-- Pre-commit Hooks: It is strongly recommended to use tools like git-secrets or trufflehog locally to prevent accidental secret commits.
-- Secrets Handling: Use environment variables, GitHub Secrets, or an external vault (e.g., HashiCorp Vault / Ansible Vault) for confidential data.
-- Immediate Remediation: If a secret is accidentally committed to Git, notify the team immediately and consider the secret compromised (revoke and rotate it instantly).
+- **Automated Secret Scanning:** Every push to a remote branch is automatically scanned by GitHub Advanced Security / Secret Scanning (or Trufflehog CI). Commits containing leaked keys, certificates, or Spring profile passwords will block merges immediately.
+- **Pre-commit Hooks:** It is strongly recommended to use tools like git-secrets or trufflehog locally to prevent accidental secret commits.
+- **Secrets Handling:** Use environment variables, GitHub Secrets, or an external vault (e.g., HashiCorp Vault / Ansible Vault) for confidential data.
+- **Immediate Remediation:** If a secret is accidentally committed to Git, notify the team immediately and consider the secret compromised (revoke and rotate it instantly).
