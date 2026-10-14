@@ -41,3 +41,5 @@ To maintain compliance, high availability, and auditability, all modifications m
     * Merging approved code into the `main` branch triggers the production pipeline (`.github/workflows/production-deploy.yml`).
     * Ansible and Docker Swarm execute a zero-downtime rolling update of the monolithic service stack, utilizing strict health probes (`--update-failure-action rollback` on failure).
     * Successfully merging the Pull Request automatically closes the linked governance Issue and updates the Kanban board.
+## Contributing
+We welcome contributions! Please review the [Contributing Guide](.github/CONTRIBUTING.md) to get started.
